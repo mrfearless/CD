@@ -1,0 +1,20 @@
+* text eol=crlf
+*.exe binary
+*.dll binary
+*.zip binary
+*.obj binary
+*.res binary
+*.lib binary
+*.dlg binary
+*.mnu binary
+*.ttf binary
+*.ico binary
+*.bmp binary
+*.png binary
+*.jpg binary
+*.lzms binary
+*.xprs binary
+*.huff binary
+*.mszp binary
+*.tpl linguist-language=Text
+*.inc linguist-language=Assembly

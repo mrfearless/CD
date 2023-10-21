@@ -1,0 +1,11 @@
+#define MANIFEST 						24
+1						MANIFEST  DISCARDABLE "CD.xml"
+100						ICON      DISCARDABLE "Images/CD-8Bit.ico"
+121						RCDATA    DISCARDABLE "Images/Compress_Button.bmp.lzms"
+122						RCDATA    DISCARDABLE "Images/Decompress_Button.bmp.lzms"
+123						RCDATA    DISCARDABLE "Images/Exit_Button.bmp.lzms"
+124						RCDATA    DISCARDABLE "Images/About_Button.bmp.lzms"
+131						RCDATA    DISCARDABLE "Images/Compress_Menu.bmp.lzms"
+132						RCDATA    DISCARDABLE "Images/Decompress_Menu.bmp.lzms"
+133						RCDATA    DISCARDABLE "Images/Exit_Menu.bmp.lzms"
+134						RCDATA    DISCARDABLE "Images/About_Menu.bmp.lzms"
