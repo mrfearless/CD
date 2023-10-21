@@ -4,7 +4,7 @@
 
 ![](./assets/CDScreenshot.png)
 
-**CD** uses the Microsoft Compression API to compress or decompress data using one of the four supported compression algorithms: **XPRESS**, **XPRESS with Huffman encoding**, **MSZIP** or** LZMS**.
+**CD** uses the Microsoft Compression API to compress or decompress data using one of the four supported compression algorithms: **XPRESS**, **XPRESS with Huffman encoding**, **MSZIP** or **LZMS**.
 
 The files compressed by **CD** using those compression algorithms also store a signature `DWORD` value as the header at the start of the file. This is so that the appropriate compression algorithm can be used for the decompression.
 
