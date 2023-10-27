@@ -4,15 +4,17 @@
 #define IDC_ABOUT_BANNER 17002
 #define IDC_WEBSITE_URL 17003
 #define IDC_TxtVersion 17005
-AboutDlg DIALOGEX 5,4,172,170
+#define IDC_EDT_INFO 17006
+AboutDlg DIALOGEX 5,4,172,232
 CAPTION "About"
 FONT 11,"Segoe UI",400,0
-STYLE 0x10C80800
+STYLE 0x16C80800
 EXSTYLE 0x00000000
 BEGIN
-  CONTROL "Ok",IDC_ABOUT_EXIT,"Button",0x50010000,20,150,133,13,0x00000000
+  CONTROL "Ok",IDC_ABOUT_EXIT,"Button",0x50010000,20,212,133,13,0x00000000
   CONTROL "",IDC_ABOUT_BANNER,"Static",0x5000010E,52,0,64,51,0x00000000
-  CONTROL "https://github.com/mrfearless",IDC_WEBSITE_URL,"Static",0x50000101,32,132,105,10,0x00000000
+  CONTROL "https://github.com/mrfearless",IDC_WEBSITE_URL,"Static",0x50000101,32,192,105,10,0x00000000
   CONTROL "The above bitmap was stored as compressed \nlzms data and uncompressed in memory \nbefore creating it and displaying it here.\r\n\r\nIn addtion some of the other bitmaps in this \nutility are stored as lzms data resources.",IDC_TxtInfo,"Static",0x50000001,0,74,170,50,0x00000000
-  CONTROL "CD v1.0.0.0 - Build Date 21/10/2023 - fearless",IDC_TxtVersion,"Static",0x50000001,0,60,170,8,0x00000000
+  CONTROL "CD v1.0.0.1 - Build Date 27/10/2023 - fearless",IDC_TxtVersion,"Static",0x50000001,0,60,170,8,0x00000000
+  CONTROL "",IDC_EDT_INFO,"Edit",0x50A11004,5,130,163,50,0x00000000
 END

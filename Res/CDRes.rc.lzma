@@ -9,3 +9,13 @@
 132						RCDATA    DISCARDABLE "Images/Decompress_Menu.bmp.lzms"
 133						RCDATA    DISCARDABLE "Images/Exit_Menu.bmp.lzms"
 134						RCDATA    DISCARDABLE "Images/About_Menu.bmp.lzms"
+135						RCDATA    DISCARDABLE "Images/Text_Menu.bmp.lzms"
+151						RCDATA    DISCARDABLE "Images/TextClearWide.bmp.lzms"
+152						RCDATA    DISCARDABLE "Images/TextLoadWide.bmp.lzms"
+153						RCDATA    DISCARDABLE "Images/DataSaveWide.bmp.lzms"
+154						RCDATA    DISCARDABLE "Images/DataCopyWide.bmp.lzms"
+155						RCDATA    DISCARDABLE "Images/TextPasteWide.bmp.lzms"
+156						RCDATA    DISCARDABLE "Images/Close.bmp.lzms"
+
+
+

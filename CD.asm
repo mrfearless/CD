@@ -1,6 +1,6 @@
 ;------------------------------------------------------------------------------
-; CD - Compress-Decompress Utility using MS Compression Api (Cabinet.dll) 
-; fearles 2023 - github.com/mrfearless
+; CD - Compress-Decompress Utility using MS Compression API
+; fearless 2023 - github.com/mrfearless
 ;------------------------------------------------------------------------------
 ; https://learn.microsoft.com/en-us/windows/win32/cmpapi/-compression-portal
 ; https://learn.microsoft.com/en-us/windows/win32/cmpapi/using-the-compression-api
@@ -55,33 +55,6 @@
 ;
 ;------------------------------------------------------------------------------
 ;
-; CD.EXE 57.0 KB (58,368 bytes) without LZMA resources (normal bitmap resources)
-;
-; About_Button.bmp            6.05 KB (6,198 bytes)
-; About_Menu.bmp              1.61 KB (1,654 bytes)
-; Compress_Button.bmp         6.05 KB (6,198 bytes)
-; Compress_Menu.bmp           1.05 KB (1,078 bytes)
-; Decompress_Button.bmp       6.05 KB (6,198 bytes)
-; Decompress_Menu.bmp         1.05 KB (1,078 bytes)
-; Exit_Button.bmp             6.05 KB (6,198 bytes)
-; Exit_Menu.bmp               1.05 KB (1,078 bytes)
-;                             ---------------------
-;                            28.90 KB (29,680 bytes)
-;
-;
-; CD.EXE 31.0 KB (31,744 bytes) with LZMA resources (RC_DATA lzma files)
-;
-; About_Button.bmp.lzms       0.36 KB (366 Bytes)
-; About_Menu.bmp.lzms         0.26 KB (262 Bytes)
-; Compress_Button.bmp.lzms    0.42 KB (426 Bytes)
-; Compress_Menu.bmp.lzms      0.30 KB (304 Bytes)
-; Decompress_Button.bmp.lzms  0.35 KB (352 Bytes)
-; Decompress_Menu.bmp.lzms    0.27 KB (272 Bytes)
-; Exit_Button.bmp.lzms        0.33 KB (332 Bytes)
-; Exit_Menu.bmp.lzms          0.36 KB (366 Bytes)
-;                             ---------------------
-;                             2.61 KB (2,680 bytes)
-;
 ; Project->Project Options has a define added to the resource compiler as
 ; "/d LZMA_RESOURCES" to allow for switching between resource files in CD.rc
 ; (CDRes.rc.lzma or CDRes.rc.normal):
@@ -118,7 +91,9 @@ ENDIF
 
 include CD.inc
 include .\Images\CD128x128x4.bmp.asm
+include infotext.asm
 include AboutDlg.asm
+include CDText.asm
 
 
 .code
@@ -201,13 +176,13 @@ WndProc PROC hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
         mov eax, wParam
         and eax, 0FFFFh
         
-        .IF eax == IDM_FILE_EXIT || eax == IDC_BTN_EXIT || eax == ACC_FILE_EXIT
+        .IF eax == IDM_FILE_EXIT || eax == IDC_BTN_EXIT || eax == ACC_FILE_EXIT || eax == ACC_BTN_EXIT
             Invoke SendMessage, hWin, WM_CLOSE, 0, 0
             
         ;----------------------------------------------------------------------
         ; Compress File
         ;----------------------------------------------------------------------
-        .ELSEIF eax == IDM_FILE_OPEN_COMPRESS || eax == IDC_BTN_COMPRESS || eax == ACC_FILE_OPEN_COMPRESS
+        .ELSEIF eax == IDM_FILE_OPEN_COMPRESS || eax == IDC_BTN_COMPRESS || eax == ACC_FILE_OPEN_COMPRESS || eax == ACC_BTN_COMPRESS
             Invoke CDBrowseForFile, hWin, TRUE
             .IF eax == TRUE
                 Invoke CDOpenFile, Addr CDFileName
@@ -244,7 +219,7 @@ WndProc PROC hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
         ;----------------------------------------------------------------------
         ; Decompress File
         ;----------------------------------------------------------------------
-        .ELSEIF eax == IDM_FILE_OPEN_DECOMPRESS || eax == IDC_BTN_DECOMPRESS || eax == ACC_FILE_OPEN_DECOMPRESS
+        .ELSEIF eax == IDM_FILE_OPEN_DECOMPRESS || eax == IDC_BTN_DECOMPRESS || eax == ACC_FILE_OPEN_DECOMPRESS || eax == ACC_BTN_DECOMPRESS
             Invoke CDBrowseForFile, hWin, FALSE
             .IF eax == TRUE
                 Invoke CDOpenFile, Addr CDFileName
@@ -345,6 +320,13 @@ WndProc PROC hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
                 Invoke lstrcat, Addr szStatusBarMsg, Addr szSuccess
                 Invoke SendMessage, hStatusBar, SB_SETTEXT, 0, Addr szStatusBarMsg
             .ENDIF
+            
+        ;----------------------------------------------------------------------
+        ; Compress Text Strings To Masm Data Bytes Output
+        ;----------------------------------------------------------------------
+        .ELSEIF eax == IDM_TEXT || eax == ACC_TEXT
+            Invoke DialogBoxParam, hInstance, IDD_TEXTDLG, hWin, Addr CDTextDlgProc, NULL
+            
         .ENDIF
         
     .ELSEIF eax == WM_CLOSE
@@ -463,6 +445,14 @@ InitGUI PROC hWin:DWORD
     mov hBitmap, eax
     Invoke SetMenuItemBitmaps, hMainMenu, IDM_HELP_ABOUT, MF_BYCOMMAND, hBitmap, 0
 
+    IFNDEF LZMA_RESOURCES
+    Invoke LoadBitmap, hInstance, BMP_TEXT_MENU
+    ELSE
+    Invoke CDBitmapCreateFromCompressedRes, hInstance, LZMA_TEXT_MENU
+    ENDIF
+    mov hBitmap, eax
+    Invoke SetMenuItemBitmaps, hMainMenu, IDM_TEXT, MF_BYCOMMAND, hBitmap, 0
+
     ret
 InitGUI ENDP
 
@@ -487,7 +477,7 @@ InitTipsForEachChild PROC USES EBX hChild:DWORD, lParam:DWORD
     mov tti.hInst, eax
     
     Invoke GetDlgCtrlID, hChild
-    add eax, 1000
+    ;add eax, 1000
     mov TooltipTextID, eax
 
     Invoke LoadString, hInstance, TooltipTextID, Addr TooltipText, 256
@@ -1002,6 +992,193 @@ CDDecompressFile PROC USES EBX
 CDDecompressFile ENDP
 
 ;------------------------------------------------------------------------------
+; CDCompressMem - Compress data in memory with one of the Cabinet compression 
+; algorithms. Stores a header signature at the first dword indicating the 
+; compression algorithm used to compress the data.
+;
+; Returns: pointer to Compressed data if succesful or NULL otherwise.
+; User should free memory when no longer required with call to GlobalFree 
+; Variable pointed to by lpdwCompressedDataLength will contain the size of the
+; compressed data or 0 if a failure occured.
+;------------------------------------------------------------------------------
+CDCompressMem PROC USES EBX lpUncompressedData:DWORD, dwUncompressedDataLength:DWORD, dwCompressionAlgorithm:DWORD, lpdwCompressedDataLength:DWORD
+    LOCAL CompressorHandle:DWORD
+    LOCAL CompressedBuffer:DWORD
+    LOCAL CompressedBufferSize:DWORD
+    LOCAL CompressedDataSize:DWORD
+    LOCAL CompressionAlgorithm:DWORD
+    LOCAL pData:DWORD
+    
+    IFDEF DEBUG32
+    PrintText 'CDCompressMem'
+    ;PrintDec lpUncompressedData
+    ;PrintDec dwUncompressedDataLength
+    ENDIF
+    
+    .IF lpUncompressedData == NULL || dwUncompressedDataLength == 0
+        IFDEF DEBUG32
+        PrintText 'CDCompressMem lpUncompressedData == NULL || dwUncompressedDataLength == 0'
+        ENDIF
+        .IF lpdwCompressedDataLength != 0
+            mov ebx, lpdwCompressedDataLength
+            mov eax, 0
+            mov [ebx], eax
+        .ENDIF
+        mov eax, NULL
+        ret
+    .ENDIF
+    
+    mov eax, dwCompressionAlgorithm
+    .IF eax != COMPRESS_ALGORITHM_MSZIP && eax != COMPRESS_ALGORITHM_XPRESS && eax != COMPRESS_ALGORITHM_XPRESS_HUFF && eax != COMPRESS_ALGORITHM_LZMS
+        IFDEF DEBUG32
+        PrintText 'CDCompressMem dwCompressionAlgorithm Not Valid'
+        ENDIF
+        .IF lpdwCompressedDataLength != 0
+            mov ebx, lpdwCompressedDataLength
+            mov eax, 0
+            mov [ebx], eax
+        .ENDIF
+        mov eax, NULL
+        ret
+    .ENDIF
+    
+    ;--------------------------------------------------------------------------
+    ; Create compressor
+    ;--------------------------------------------------------------------------
+    Invoke CreateCompressor, dwCompressionAlgorithm, NULL, Addr CompressorHandle
+    .IF eax == FALSE
+        IFDEF DEBUG32
+        PrintText 'CDCompressMem CreateCompressor Failed'
+        ENDIF
+        .IF lpdwCompressedDataLength != 0
+            mov ebx, lpdwCompressedDataLength
+            mov eax, 0
+            mov [ebx], eax
+        .ENDIF
+        mov eax, NULL
+        ret
+    .ENDIF
+    
+    ;--------------------------------------------------------------------------
+    ; Get size required first
+    ;--------------------------------------------------------------------------
+    Invoke Compress, CompressorHandle, lpUncompressedData, dwUncompressedDataLength, NULL, 0, Addr CompressedBufferSize
+    .IF eax == FALSE
+        Invoke GetLastError
+        .IF eax == ERROR_INSUFFICIENT_BUFFER
+            
+        .ELSE
+            IFDEF DEBUG32
+            PrintText 'CDCompressMem Compress Get Size Failed'
+            ENDIF
+            .IF CompressorHandle != 0
+                Invoke CloseCompressor, CompressorHandle
+            .ENDIF
+            .IF lpdwCompressedDataLength != 0
+                mov ebx, lpdwCompressedDataLength
+                mov eax, 0
+                mov [ebx], eax
+            .ENDIF
+            mov eax, NULL
+            ret
+        .ENDIF
+    .ENDIF
+    
+    ;--------------------------------------------------------------------------
+    ; Alloc buffer required
+    ;--------------------------------------------------------------------------
+    ;PrintDec CompressedBufferSize
+    mov eax, CompressedBufferSize
+    add eax, SIZEOF DWORD ; room for header signature
+    Invoke GlobalAlloc, GMEM_FIXED or GMEM_ZEROINIT, eax
+    .IF eax == NULL
+        IFDEF DEBUG32
+        PrintText 'CDCompressMem GlobalAlloc Failed'
+        ENDIF
+        .IF CompressorHandle != 0
+            Invoke CloseCompressor, CompressorHandle
+        .ENDIF
+        .IF lpdwCompressedDataLength != 0
+            mov ebx, lpdwCompressedDataLength
+            mov eax, 0
+            mov [ebx], eax
+        .ENDIF
+        mov eax, NULL
+        ret
+    .ENDIF
+    mov CompressedBuffer, eax
+    mov pData, eax
+    add pData, SIZEOF DWORD ; skip past header signature
+    
+    ;--------------------------------------------------------------------------
+    ; Add header signature
+    ;--------------------------------------------------------------------------
+    mov ebx, CompressedBuffer
+    mov eax, dwCompressionAlgorithm
+    .IF eax == COMPRESS_ALGORITHM_MSZIP
+        mov eax, HEADER_MSZIP
+        mov [ebx], eax
+    .ELSEIF eax == COMPRESS_ALGORITHM_XPRESS
+        mov eax, HEADER_XPRESS
+        mov [ebx], eax
+    .ELSEIF eax == COMPRESS_ALGORITHM_XPRESS_HUFF
+        mov eax, HEADER_HUFF
+        mov [ebx], eax
+    .ELSEIF eax == COMPRESS_ALGORITHM_LZMS
+        mov eax, HEADER_LZMS
+        mov [ebx], eax
+    .ENDIF
+    
+    ;mov eax, CompressedBufferSize
+    ;add eax, SIZEOF DWORD ; room for header signature
+    ;DbgDump CompressedBuffer, eax
+    
+    ;--------------------------------------------------------------------------
+    ; Do actual compression now
+    ;--------------------------------------------------------------------------
+    Invoke Compress, CompressorHandle, lpUncompressedData, dwUncompressedDataLength, pData, CompressedBufferSize, Addr CompressedDataSize
+    .IF eax == FALSE
+        IFDEF DEBUG32
+        PrintText 'CDCompressMem Compress Failed'
+        ENDIF
+        .IF CompressedBuffer != 0
+            Invoke GlobalFree, CompressedBuffer
+        .ENDIF
+        .IF CompressorHandle != 0
+            Invoke CloseCompressor, CompressorHandle
+        .ENDIF
+        .IF lpdwCompressedDataLength != 0
+            mov ebx, lpdwCompressedDataLength
+            mov eax, 0
+            mov [ebx], eax
+        .ENDIF
+        mov eax, NULL
+        ret
+    .ENDIF
+    
+    ;mov eax, CompressedBufferSize
+    ;add eax, SIZEOF DWORD ; room for header signature
+    ;DbgDump CompressedBuffer, eax
+    
+    ;--------------------------------------------------------------------------
+    ; Cleanup
+    ;--------------------------------------------------------------------------
+    .IF CompressorHandle != 0
+        Invoke CloseCompressor, CompressorHandle
+    .ENDIF
+    
+    .IF lpdwCompressedDataLength != 0
+        mov ebx, lpdwCompressedDataLength
+        mov eax, CompressedDataSize
+        add eax, SIZEOF DWORD ; to account for compression header we add
+        mov [ebx], eax
+    .ENDIF
+    
+    mov eax, CompressedBuffer
+    ret
+CDCompressMem ENDP
+
+;------------------------------------------------------------------------------
 ; CDDecompressMem - Decompress memory that was previously compressed with one
 ; of the Cabinet compression algorithms. Checks for header signature first to 
 ; verify that there is a compressed data and what algorithm to use.
@@ -1093,7 +1270,10 @@ CDDecompressMem PROC USES EBX lpCompressedData:DWORD, dwCompressedDataLength:DWO
     ;--------------------------------------------------------------------------
     ; Alloc buffer required
     ;--------------------------------------------------------------------------
-    Invoke GlobalAlloc, GMEM_FIXED or GMEM_ZEROINIT, DecompressedBufferSize
+    mov eax, DecompressedBufferSize 
+    add eax, 4 ; we add four extra to give us 4 null bytes in case compressed
+    ; data is an ansi or unicode string or something that requires null endings
+    Invoke GlobalAlloc, GMEM_FIXED or GMEM_ZEROINIT, eax ;DecompressedBufferSize
     .IF eax == NULL
         IFDEF DEBUG32
         PrintText 'CDDecompressMem GlobalAlloc Failed'
@@ -1114,6 +1294,28 @@ CDDecompressMem PROC USES EBX lpCompressedData:DWORD, dwCompressedDataLength:DWO
         IFDEF DEBUG32
         PrintText 'CDDecompressMem Decompress Failed'
         ENDIF
+        Invoke GetLastError
+        .IF eax == ERROR_BAD_COMPRESSION_BUFFER
+            IFDEF DEBUG32
+            PrintText 'CDDecompressMem Decompress Failed ERROR_BAD_COMPRESSION_BUFFER'
+            ENDIF
+        .ELSEIF eax == ERROR_INSUFFICIENT_BUFFER
+            IFDEF DEBUG32
+            PrintText 'CDDecompressMem Decompress Failed ERROR_INSUFFICIENT_BUFFER'
+            PrintDec DecompressedBufferSize
+            PrintDec nDataLength
+            PrintDec DecompressedBuffer
+            PrintDec pData
+            ENDIF
+        .ELSEIF eax == ERROR_FUNCTION_FAILED
+            IFDEF DEBUG32
+            PrintText 'CDDecompressMem Decompress Failed ERROR_FUNCTION_FAILED'
+            ENDIF
+        .ELSEIF eax == ERROR_INVALID_HANDLE
+            IFDEF DEBUG32
+            PrintText 'CDDecompressMem Decompress Failed ERROR_INVALID_HANDLE'
+            ENDIF
+        .ENDIF
         .IF DecompressedBuffer != 0
             Invoke GlobalFree, DecompressedBuffer
         .ENDIF
@@ -1254,6 +1456,7 @@ CDOutputAsmFile PROC USES EBX
     add LenDataAsm, 16  ; ' Bytes' +CRLFs x 2
     add LenDataAsm, 4   ; % and CRLF
     add LenDataAsm, 8   ; (x:1) and CRLF
+    add LenDataAsm, 16
     
     ;--------------------------------------------------------------------------
     ; Alloc memory for asm hex output

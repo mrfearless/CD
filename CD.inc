@@ -1,6 +1,6 @@
 ;------------------------------------------------------------------------------
-; CD - Compress-Decompress Utility using MS Compression Api (Cabinet.dll) 
-; fearles 2023 - github.com/mrfearless
+; CD - Compress-Decompress Utility using MS Compression API
+; fearless 2023 - github.com/mrfearless
 ;------------------------------------------------------------------------------
 ; https://learn.microsoft.com/en-us/windows/win32/cmpapi/-compression-portal
 ; https://learn.microsoft.com/en-us/windows/win32/cmpapi/using-the-compression-api
@@ -133,6 +133,7 @@ CDBrowseForFile                 PROTO hWin:DWORD, bCompress:DWORD
 ; Compression/Decompression Functions
 CDCompressFile                  PROTO
 CDDecompressFile                PROTO
+CDCompressMem                   PROTO lpUncompressedData:DWORD, dwUncompressedDataLength:DWORD, dwCompressionAlgorithm:DWORD, lpdwCompressedDataLength:DWORD
 CDDecompressMem                 PROTO lpCompressedData:DWORD, dwCompressedDataLength:DWORD
 
 ; Bitmap Create Functions
@@ -171,6 +172,7 @@ BMP_COMPRESS_MENU               EQU 111 ; Images/Compress_Menu.bmp
 BMP_DECOMPRESS_MENU             EQU 112 ; Images/Decompress_Menu.bmp
 BMP_EXIT_MENU                   EQU 113 ; Images/Exit_Menu.bmp
 BMP_ABOUT_MENU                  EQU 114 ; Images/About_Menu.bmp
+BMP_TEXT_MENU                   EQU 115 ; Images/Text_Menu.bmp
 LZMA_COMPRESS_WIDE              EQU 121 ; Images/Compress_Button.bmp.lzms
 LZMA_DECOMPRESS_WIDE            EQU 122 ; Images/Decompress_Button.bmp.lzms
 LZMA_EXIT_WIDE                  EQU 123 ; Images/Exit_Button.bmp.lzms
@@ -179,7 +181,7 @@ LZMA_COMPRESS_MENU              EQU 131 ; Images/Compress_Menu.bmp.lzms
 LZMA_DECOMPRESS_MENU            EQU 132 ; Images/Decompress_Menu.bmp.lzms
 LZMA_EXIT_MENU                  EQU 133 ; Images/Exit_Menu.bmp.lzms
 LZMA_ABOUT_MENU                 EQU 134 ; Images/About_Menu.bmp.lzms
-
+LZMA_TEXT_MENU                  EQU 135 ; Images/Text_Menu.bmp.lzms
 
 ; Accelerators:
 ACCTABLE                        EQU 300
@@ -187,6 +189,14 @@ ACC_FILE_OPEN_COMPRESS          EQU 301 ; CTRL+C
 ACC_FILE_OPEN_DECOMPRESS        EQU 302 ; CTRL+D
 ACC_FILE_EXIT                   EQU 303 ; ALT+F4
 ACC_HELP_ABOUT                  EQU 304 ; F1
+ACC_TEXT                        EQU 305 ; CTRL+T
+ACC_BTN_COMPRESS                equ 306 ; ALT+C
+ACC_BTN_DECOMPRESS              equ 307 ; ALT+D
+ACC_BTN_EXIT                    equ 308 ; ALT+X
+ACC_BTN_PASTE                   equ 309 ; ALT+P
+ACC_BTN_COPY                    equ 310 ; ALT+C
+ACC_BTN_LOAD                    equ 311 ; ALT+L
+ACC_BTN_SAVE                    equ 312 ; ALT+S
 
 ;CD.dlg Resource IDs:
 IDD_DIALOG                      EQU 1000
@@ -210,6 +220,7 @@ IDM_MENU                        EQU 10000
 IDM_FILE_OPEN_COMPRESS          EQU 10001
 IDM_FILE_OPEN_DECOMPRESS        EQU 10002
 IDM_FILE_CLOSE                  EQU 10003
+IDM_TEXT                        EQU 10006
 IDM_FILE_EXIT                   EQU 10004
 IDM_HELP_ABOUT                  EQU 10101
 
@@ -288,6 +299,11 @@ HEADER_XPRESS                   DD 'SRPX' ; 'XPRS'
 HEADER_HUFF                     DD 'FFUH' ; 'HUFF'
 HEADER_LZMS                     DD 'SMZL' ; 'LZMS'
 
+szHEADER_MSZIP                  DB 'MSZP',0
+szHEADER_XPRESS                 DB 'XPRS',0
+szHEADER_HUFF                   DB 'HUFF',0
+szHEADER_LZMS                   DB 'LZMS',0
+
 ; Output of asm related strings
 szASMhcs0                       DB 'h, 0',0 ; h comma space zero - used for asm output - 4
 szASMhcs01st                    DB '0',0 ; first - 1
@@ -308,7 +324,9 @@ szASMCmtRatio                   DB "; Compression Ratio: ",0 ; - 21
 szASMBytes                      DB " Bytes",13,10,0 ; 8 x 2
 szASMPcnt                       DB "% (",0 ; 4
 szASMRatio                      DB ":1)",13,10,0
-
+szASMTextStart                  DB " ; (",0
+szASMTextMiddle                 DB " Bytes >> ",0
+szASMTextEnd                    DB " Bytes)",0
 
 .DATA?
 ;------------------------------------------------------------------------------

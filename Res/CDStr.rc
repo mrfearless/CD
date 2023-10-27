@@ -1,12 +1,24 @@
-#define TIP_XPRESS						2002
-#define TIP_HUFF						2003
-#define TIP_MSZIP						2004
-#define TIP_LZMS						2005
-#define TIP_COMPRESS					2006
-#define TIP_DECOMPRESS					2007
-#define TIP_EXIT						2008
-#define TIP_ASM							2010
-#define TIP_ABOUT						2012
+#define TIP_XPRESS						1002
+#define TIP_HUFF						1003
+#define TIP_MSZIP						1004
+#define TIP_LZMS						1005
+#define TIP_COMPRESS					1006
+#define TIP_DECOMPRESS					1007
+#define TIP_EXIT						1008
+#define TIP_ASM							1010
+#define TIP_ABOUT						1012
+#define TIP_TEXT_XPRESS					2007
+#define TIP_TEXT_HUFF					2008
+#define TIP_TEXT_MSZIP					2009
+#define TIP_TEXT_LZMS					2010
+#define TIP_TEXT_NONE					2011
+#define TIP_TEXT_PASTE					2014
+#define TIP_TEXT_COPY					2019
+#define TIP_TEXT_CLEAR					2016
+#define TIP_TEXT_SAVE					2020
+#define TIP_TEXT_LOAD					2015
+#define TIP_TEXT_INPUT					2013
+#define TIP_TEXT_OUTPUT					2018
 STRINGTABLE DISCARDABLE
 BEGIN
   TIP_XPRESS				"Microsoft Xpress Compression Algorithm (MS-XCA), more commonly known as LZXpress, implements the LZ77 algorithm."
@@ -18,4 +30,16 @@ BEGIN
   TIP_EXIT					"Exit this application."
   TIP_ASM					"Creates a masm assembler compatible file and outputs the compressed file's data bytes as hex data 'DB' bytes."
   TIP_ABOUT					"About this application and demonstration of using a LZMS compressed bitmap stored as masm data bytes."
+  TIP_TEXT_XPRESS			"Microsoft Xpress Compression Algorithm (MS-XCA), more commonly known as LZXpress, implements the LZ77 algorithm."
+  TIP_TEXT_HUFF				"The Huffman variant of the Microsoft Xpress Compression Algorithm (MS-XCA) uses LZ77-style dictionary compression combined with Huffman coding. Designed for fast compression and decompression with a small dictionary size."
+  TIP_TEXT_MSZIP			"MSZIP uses a combination of LZ77 and Huffman coding. It has only minor variations from Phil Katz's 'deflate' method. MSZIP uses only the three basic modes of deflate: stored, fixed Huffman tree, and dynamic Huffman tree."
+  TIP_TEXT_LZMS				"LZMS is an LZ77-based algorithm achieving a high compression ratio by relying on a large LZ77 dictionary size and Huffman coding in addition to more concise arithmetic coding."
+  TIP_TEXT_NONE				"No compression, just convert the text to masm style data bytes"
+  TIP_TEXT_PASTE			"Paste text from the clipboard into the input editbox"
+  TIP_TEXT_COPY				"Copy masm style data bytes from the output editbox to the clipboard"
+  TIP_TEXT_CLEAR			"Clears the text from the input and output editbox controls"
+  TIP_TEXT_SAVE				"Save the masm style data bytes from the output editbox to a file"
+  TIP_TEXT_LOAD				"Load text from a file into the input editbox"
+  TIP_TEXT_INPUT			"Type the text to compress and convert to masm style data bytes into the editbox. The compression and output to masm style data bytes is automatic. Text < 256 bytes may not be result in good compression ratio. The editbox has a limit of 64,000 bytes"
+  TIP_TEXT_OUTPUT			"This editbox will contain the masm style data bytes compressed  and converted from the text entered into the input editbox above"
 END

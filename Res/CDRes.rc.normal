@@ -9,4 +9,10 @@
 112						BITMAP    DISCARDABLE "Images/Decompress_Menu.bmp"
 113						BITMAP    DISCARDABLE "Images/Exit_Menu.bmp"
 114						BITMAP    DISCARDABLE "Images/About_Menu.bmp"
-
+115						RCDATA    DISCARDABLE "Images/Text_Menu.bmp"
+141						RCDATA    DISCARDABLE "Images/ClearTextWide.bmp"
+142						RCDATA    DISCARDABLE "Images/LoadFileWide.bmp"
+143						RCDATA    DISCARDABLE "Images/SaveFileWide.bmp"
+144						RCDATA    DISCARDABLE "Images/CopyDataWide.bmp"
+145						RCDATA    DISCARDABLE "Images/PasteTextWide.bmp"
+146						RCDATA    DISCARDABLE "Images/Close.bmp"

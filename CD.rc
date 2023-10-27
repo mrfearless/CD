@@ -1,3 +1,4 @@
+#include "Res/CDTextDlg.rc"
 #include "Res/CDStr.rc"
 #include "Res/CDAcl.rc"
 #include "Res/AboutDlgDlg.rc"

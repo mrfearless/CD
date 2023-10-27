@@ -1,6 +1,6 @@
 ;------------------------------------------------------------------------------
-; CD - Compress-Decompress Utility using MS Compression Api (Cabinet.dll) 
-; fearles 2023 - github.com/mrfearless
+; CD - Compress-Decompress Utility using MS Compression API
+; fearless 2023 - github.com/mrfearless
 ;------------------------------------------------------------------------------
 ; https://learn.microsoft.com/en-us/windows/win32/cmpapi/-compression-portal
 ; https://learn.microsoft.com/en-us/windows/win32/cmpapi/using-the-compression-api
@@ -70,18 +70,20 @@ IDC_ABOUT_BANNER                EQU 17002
 IDC_WEBSITE_URL                 EQU 17003
 IDC_TxtInfo                     EQU 17004
 IDC_TxtVersion                  EQU 17005
+IDC_EDT_INFO                    EQU 17006
 
 .DATA
 mrfearless_github               DB "https://github.com/mrfearless",0
 pBMPInMemory                    DD 0
 hBMPInMemory                    DD 0
+pStringInMemory                 DD 0
 
 .DATA?
 hWebsiteURL                     DD ?
 hAboutBanner                    DD ?
 hTxtInfo                        DD ?
 hTxtVersion                     DD ?
-
+hEdtInfo                        DD ?
 
 .CODE
 ;------------------------------------------------------------------------------
@@ -128,6 +130,21 @@ AboutDlgProc PROC hWin:HWND, iMsg:DWORD, wParam:WPARAM, lParam:LPARAM
         mov hTxtVersion, eax
         Invoke GetDlgItem, hWin, IDC_ABOUT_BANNER
         mov hAboutBanner, eax
+        Invoke GetDlgItem, hWin, IDC_EDT_INFO
+        mov hEdtInfo, eax
+        
+        ;----------------------------------------------------------------------
+        ; Decompress a compressed string stored in Infotext.asm as szMSZPText
+        ; Original string size is 2297 Bytes, compressed it is 1035 Bytes long
+        ;----------------------------------------------------------------------
+        Invoke CDDecompressMem, Addr szMSZPText, szMSZPTextLength
+        .IF eax != NULL
+            mov pStringInMemory, eax
+            Invoke SetWindowText, hEdtInfo, pStringInMemory
+        .ELSE
+            Invoke SetWindowText, hEdtInfo, CTEXT("This is meant to show some text. Maybe something went wrong?")
+        .ENDIF
+        
         
         ;----------------------------------------------------------------------
         ; Change class for these controls to show a hand when mouse over.
@@ -155,12 +172,16 @@ AboutDlgProc PROC hWin:HWND, iMsg:DWORD, wParam:WPARAM, lParam:LPARAM
        .ENDIF
         
     .ELSEIF eax == WM_CLOSE
+        .IF pStringInMemory != 0
+            Invoke GlobalFree, pStringInMemory
+        .ENDIF
         .IF pBMPInMemory != 0
             Invoke GlobalFree, pBMPInMemory
         .ENDIF
         .IF hBMPInMemory != 0
             Invoke DeleteObject, hBMPInMemory
         .ENDIF
+        mov pStringInMemory, 0
         mov pBMPInMemory, 0
         mov hBMPInMemory, 0
         Invoke EndDialog, hWin, NULL
