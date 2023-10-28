@@ -188,31 +188,48 @@ WndProc PROC hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
                 Invoke CDOpenFile, Addr CDFileName
                 .IF eax == TRUE
                     Invoke CDJustFnameExt, Addr CDFileName, Addr CDFileNameExtOnly
-                    Invoke lstrcpy, Addr szStatusBarMsg, Addr szFile
+                    Invoke lstrcpy, Addr szStatusBarMsg, Addr szCompressingFile
                     Invoke lstrcat, Addr szStatusBarMsg, Addr CDFileNameExtOnly
+                    Invoke lstrcat, Addr szStatusBarMsg, Addr szPleaseWait
                     Invoke SendMessage, hStatusBar, SB_SETTEXT, 0, Addr szStatusBarMsg
                     Invoke CDCompressFile
                     .IF eax == TRUE
-                        Invoke lstrcpy, Addr szStatusBarMsg, Addr szCompressFile
+                        Invoke lstrcpy, Addr szStatusBarMsg, Addr szCompressedFile
                         Invoke lstrcat, Addr szStatusBarMsg, Addr CDFileNameExtOnly
                         Invoke lstrcat, Addr szStatusBarMsg, Addr szSuccess
                         Invoke SendMessage, hStatusBar, SB_SETTEXT, 0, Addr szStatusBarMsg
+                        
+                        ;----------------------------------------------------------
+                        ; Output masm hex bytes to .asm file if option is checked
+                        ;----------------------------------------------------------
+                        .IF bAsmOutput == TRUE
+                            Invoke CDJustFnameExt, Addr CDFileName, Addr CDFileNameExtOnlyOutput
+                            Invoke CDCloseFile
+                            Invoke CDOpenFile, Addr CDCompressedFileName
+                            Invoke lstrcat, Addr szStatusBarMsg, Addr szMASMOutputFile
+                            Invoke SendMessage, hStatusBar, SB_SETTEXT, 0, Addr szStatusBarMsg
+                            Invoke CDOutputAsmFile
+                            .IF eax == TRUE
+                                Invoke lstrcpy, Addr szStatusBarMsg, Addr szFile
+                                Invoke lstrcat, Addr szStatusBarMsg, Addr CDFileNameExtOnlyOutput
+                                Invoke lstrcat, Addr szStatusBarMsg, Addr szSuccess
+                                Invoke SendMessage, hStatusBar, SB_SETTEXT, 0, Addr szStatusBarMsg
+                            .ELSE
+                                Invoke lstrcpy, Addr szStatusBarMsg, Addr szFile
+                                Invoke lstrcat, Addr szStatusBarMsg, Addr CDFileNameExtOnlyOutput
+                                Invoke lstrcat, Addr szStatusBarMsg, Addr szFailure
+                                Invoke SendMessage, hStatusBar, SB_SETTEXT, 0, Addr szStatusBarMsg
+                            .ENDIF
+                        .ENDIF
+                        
                     .ELSE
-                        Invoke lstrcpy, Addr szStatusBarMsg, Addr szCompressFile
+                        Invoke lstrcpy, Addr szStatusBarMsg, Addr szCompressedFile
                         Invoke lstrcat, Addr szStatusBarMsg, Addr CDFileNameExtOnly
                         Invoke lstrcat, Addr szStatusBarMsg, Addr szFailure
                         Invoke SendMessage, hStatusBar, SB_SETTEXT, 0, Addr szStatusBarMsg
                     .ENDIF
                     Invoke CDCloseFile
                     
-                    ;----------------------------------------------------------
-                    ; Output masm hex bytes to .asm file if option is checked
-                    ;----------------------------------------------------------
-                    .IF bAsmOutput == TRUE
-                        Invoke CDOpenFile, Addr CDCompressedFileName
-                        Invoke CDOutputAsmFile
-                        Invoke CDCloseFile
-                    .ENDIF
                 .ENDIF
             .ENDIF
             
@@ -225,17 +242,18 @@ WndProc PROC hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
                 Invoke CDOpenFile, Addr CDFileName
                 .IF eax == TRUE
                     Invoke CDJustFnameExt, Addr CDFileName, Addr CDFileNameExtOnly
-                    Invoke lstrcpy, Addr szStatusBarMsg, Addr szFile
+                    Invoke lstrcpy, Addr szStatusBarMsg, Addr szDecompressingFile
                     Invoke lstrcat, Addr szStatusBarMsg, Addr CDFileNameExtOnly
+                    Invoke lstrcat, Addr szStatusBarMsg, Addr szPleaseWait
                     Invoke SendMessage, hStatusBar, SB_SETTEXT, 0, Addr szStatusBarMsg
                     Invoke CDDecompressFile
                     .IF eax == TRUE
-                        Invoke lstrcpy, Addr szStatusBarMsg, Addr szDecompressFile
+                        Invoke lstrcpy, Addr szStatusBarMsg, Addr szDecompressedFile
                         Invoke lstrcat, Addr szStatusBarMsg, Addr CDFileNameExtOnly
                         Invoke lstrcat, Addr szStatusBarMsg, Addr szSuccess
                         Invoke SendMessage, hStatusBar, SB_SETTEXT, 0, Addr szStatusBarMsg
                     .ELSE
-                        Invoke lstrcpy, Addr szStatusBarMsg, Addr szDecompressFile
+                        Invoke lstrcpy, Addr szStatusBarMsg, Addr szDecompressedFile
                         Invoke lstrcat, Addr szStatusBarMsg, Addr CDFileNameExtOnly
                         Invoke lstrcat, Addr szStatusBarMsg, Addr szFailure
                         Invoke SendMessage, hStatusBar, SB_SETTEXT, 0, Addr szStatusBarMsg
@@ -290,7 +308,20 @@ WndProc PROC hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
                 Invoke SendDlgItemMessage, hWin, IDC_CHK_ASM, BM_SETCHECK, BST_CHECKED, 0
                 mov bAsmOutput, TRUE
             .ENDIF
-
+        
+        ;----------------------------------------------------------------------
+        ; Asm Segment Checkbox Selection
+        ;----------------------------------------------------------------------
+        .ELSEIF eax == IDC_CHK_ASMSEG
+            Invoke SendDlgItemMessage, hWin, IDC_CHK_ASMSEG, BM_GETCHECK, 0, 0
+            .IF eax == TRUE
+                Invoke SendDlgItemMessage, hWin, IDC_CHK_ASMSEG, BM_SETCHECK, BST_UNCHECKED, 0
+                mov bAsmDataSeg, FALSE
+            .ELSE
+                Invoke SendDlgItemMessage, hWin, IDC_CHK_ASMSEG, BM_SETCHECK, BST_CHECKED, 0
+                mov bAsmDataSeg, TRUE
+            .ENDIF
+        
         ;----------------------------------------------------------------------
         ; About Dialog with example of using a lzms compressed bitmap stored
         ; as data bytes in CD128x128x4.bmp.asm, uncompressing it in memory
@@ -324,7 +355,7 @@ WndProc PROC hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
         ;----------------------------------------------------------------------
         ; Compress Text Strings To Masm Data Bytes Output
         ;----------------------------------------------------------------------
-        .ELSEIF eax == IDM_TEXT || eax == ACC_TEXT
+        .ELSEIF eax == IDM_TEXT || eax == IDC_BTN_TEXT || eax == ACC_TEXT || eax == ACC_BTN_TEXT
             Invoke DialogBoxParam, hInstance, IDD_TEXTDLG, hWin, Addr CDTextDlgProc, NULL
             
         .ENDIF
@@ -365,6 +396,7 @@ InitGUI PROC hWin:DWORD
     ;--------------------------------------------------------------------------
     Invoke SendDlgItemMessage, hWin, IDC_RBN_XPRESS, BM_SETCHECK, BST_CHECKED, 0
     Invoke SendDlgItemMessage, hWin, IDC_CHK_ASM, BM_SETCHECK, BST_CHECKED, 0
+    Invoke SendDlgItemMessage, hWin, IDC_CHK_ASMSEG, BM_SETCHECK, BST_CHECKED, 0
     Invoke SendMessage, hStatusBar, SB_SETTEXT, 0, Addr szInfo_XPRESS
     
     ;--------------------------------------------------------------------------
@@ -406,6 +438,13 @@ InitGUI PROC hWin:DWORD
     Invoke CDBitmapCreateFromCompressedRes, hInstance, LZMA_ABOUT_WIDE
     ENDIF
     Invoke SendDlgItemMessage, hWin, IDC_BTN_ABOUT, BM_SETIMAGE, IMAGE_BITMAP, eax
+    
+    IFNDEF LZMA_RESOURCES
+    Invoke LoadBitmap, hInstance, BMP_TEXT_WIDE
+    ELSE
+    Invoke CDBitmapCreateFromCompressedRes, hInstance, LZMA_TEXT_WIDE
+    ENDIF
+    Invoke SendDlgItemMessage, hWin, IDC_BTN_TEXT, BM_SETIMAGE, IMAGE_BITMAP, eax
     
     ;--------------------------------------------------------------------------
     ; Main Menu Bitmaps
@@ -477,7 +516,6 @@ InitTipsForEachChild PROC USES EBX hChild:DWORD, lParam:DWORD
     mov tti.hInst, eax
     
     Invoke GetDlgCtrlID, hChild
-    ;add eax, 1000
     mov TooltipTextID, eax
 
     Invoke LoadString, hInstance, TooltipTextID, Addr TooltipText, 256
@@ -677,7 +715,7 @@ CDCompressFile PROC
     
     IFDEF DEBUG32
     PrintText 'CDCompressFile'
-    PrintString CDCompressedFileName
+    PrintString CDFileName
     ENDIF
 
     mov eax, CDAlgorithm
@@ -702,6 +740,10 @@ CDCompressFile PROC
     .ELSE
         Invoke lstrcat, Addr CDCompressedFileName, Addr CDCompressedExt
     .ENDIF
+    IFDEF DEBUG32
+    PrintText 'CDCompressFile'
+    PrintString CDCompressedFileName
+    ENDIF
     
     ;--------------------------------------------------------------------------
     ; Create compressor
@@ -714,6 +756,9 @@ CDCompressFile PROC
         mov eax, FALSE
         ret
     .ENDIF
+    IFDEF DEBUG32
+    PrintText 'CDCompressFile CreateCompressor OK'
+    ENDIF
 
     ;--------------------------------------------------------------------------
     ; Get size required first
@@ -734,6 +779,9 @@ CDCompressFile PROC
             ret
         .ENDIF
     .ENDIF
+    IFDEF DEBUG32
+    PrintText 'CDCompressFile Compress Size OK'
+    ENDIF
     
     ;--------------------------------------------------------------------------
     ; Alloc buffer required
@@ -750,6 +798,9 @@ CDCompressFile PROC
         ret
     .ENDIF
     mov CompressedBuffer, eax
+    IFDEF DEBUG32
+    PrintText 'CDCompressFile GlobalAlloc OK'
+    ENDIF
     
     ;--------------------------------------------------------------------------
     ; Do actual compression now
@@ -768,6 +819,9 @@ CDCompressFile PROC
         mov eax, FALSE
         ret
     .ENDIF
+    IFDEF DEBUG32
+    PrintText 'CDCompressFile Compress OK'
+    ENDIF
 
     ;--------------------------------------------------------------------------
     ; Create output file
@@ -787,6 +841,9 @@ CDCompressFile PROC
         ret
     .ENDIF
     mov hFile, eax
+    IFDEF DEBUG32
+    PrintText 'CDCompressFile CreateFile OK'
+    ENDIF
     
     ;--------------------------------------------------------------------------
     ; Write out header signature and then the compressed data to output file
@@ -801,12 +858,19 @@ CDCompressFile PROC
     .ELSEIF eax == COMPRESS_ALGORITHM_LZMS
         Invoke WriteFile, hFile, Addr HEADER_LZMS, 4, Addr BytesWritten, NULL
     .ENDIF
+    IFDEF DEBUG32
+    PrintText 'CDCompressFile WriteFile Header OK'
+    ENDIF
 
     Invoke WriteFile, hFile, CompressedBuffer, CompressedDataSize, Addr BytesWritten, NULL
+    IFDEF DEBUG32
+    PrintText 'CDCompressFile WriteFile Data OK'
+    ENDIF
     
     ;--------------------------------------------------------------------------
     ; Cleanup
     ;--------------------------------------------------------------------------
+    Invoke FlushFileBuffers, hFile
     Invoke CloseHandle, hFile
     
     .IF CompressedBuffer != 0
@@ -898,6 +962,9 @@ CDDecompressFile PROC USES EBX
         mov eax, FALSE
         ret
     .ENDIF
+    IFDEF DEBUG32
+    PrintText 'CDDecompressFile CreateDecompressor OK'
+    ENDIF
     
     ;--------------------------------------------------------------------------
     ; Get size required
@@ -918,6 +985,9 @@ CDDecompressFile PROC USES EBX
             ret
         .ENDIF
     .ENDIF
+    IFDEF DEBUG32
+    PrintText 'CDDecompressFile Decompress Size OK'
+    ENDIF
     
     ;--------------------------------------------------------------------------
     ; Alloc buffer required
@@ -934,6 +1004,9 @@ CDDecompressFile PROC USES EBX
         ret
     .ENDIF
     mov DecompressedBuffer, eax
+    IFDEF DEBUG32
+    PrintText 'CDDecompressFile GlobalAlloc OK'
+    ENDIF
     
     ;--------------------------------------------------------------------------
     ; Do the actual decompression now
@@ -952,6 +1025,9 @@ CDDecompressFile PROC USES EBX
         mov eax, FALSE
         ret
     .ENDIF
+    IFDEF DEBUG32
+    PrintText 'CDDecompressFile Decompress OK'
+    ENDIF
     
     ;--------------------------------------------------------------------------
     ; Create output file and write data
@@ -973,6 +1049,23 @@ CDDecompressFile PROC USES EBX
     mov hFile, eax ; store file handle
     
     Invoke WriteFile, hFile, DecompressedBuffer, DecompressedDataSize, Addr BytesWritten, NULL
+    .IF eax == 0
+        IFDEF DEBUG32
+        PrintText 'CDDecompressFile WriteFile Failed'
+        ENDIF
+        Invoke CloseHandle, hFile
+        
+        .IF DecompressedBuffer != 0
+            Invoke GlobalFree, DecompressedBuffer
+        .ENDIF
+        
+        .IF DecompressorHandle != 0
+            Invoke CloseDecompressor, DecompressorHandle
+        .ENDIF
+        
+        mov eax, FALSE
+        ret
+    .ENDIF
     
     ;--------------------------------------------------------------------------
     ; Cleanup
@@ -1129,10 +1222,6 @@ CDCompressMem PROC USES EBX lpUncompressedData:DWORD, dwUncompressedDataLength:D
         mov [ebx], eax
     .ENDIF
     
-    ;mov eax, CompressedBufferSize
-    ;add eax, SIZEOF DWORD ; room for header signature
-    ;DbgDump CompressedBuffer, eax
-    
     ;--------------------------------------------------------------------------
     ; Do actual compression now
     ;--------------------------------------------------------------------------
@@ -1155,10 +1244,6 @@ CDCompressMem PROC USES EBX lpUncompressedData:DWORD, dwUncompressedDataLength:D
         mov eax, NULL
         ret
     .ENDIF
-    
-    ;mov eax, CompressedBufferSize
-    ;add eax, SIZEOF DWORD ; room for header signature
-    ;DbgDump CompressedBuffer, eax
     
     ;--------------------------------------------------------------------------
     ; Cleanup
@@ -1337,13 +1422,14 @@ CDDecompressMem PROC USES EBX lpCompressedData:DWORD, dwCompressedDataLength:DWO
     ret
 CDDecompressMem ENDP
 
+ALIGN 8
 ;------------------------------------------------------------------------------
 ; CDOutputAsmFile - Outputs the compressed file with an .asm extension using 
 ; masm style data bytes: 'DB 00Fh, 0A3h, 09Ch' for example - same as bin2dbex
 ;
 ; Returns: TRUE or FALSE  
 ;------------------------------------------------------------------------------
-CDOutputAsmFile PROC USES EBX
+CDOutputAsmFile PROC USES EBX EDI ESI
     LOCAL pAsmData:DWORD
     LOCAL nAsmData:DWORD
     LOCAL LenDataAsm:DWORD
@@ -1363,6 +1449,11 @@ CDOutputAsmFile PROC USES EBX
     LOCAL CDFileSizeUncompressed:DWORD
     LOCAL fad:WIN32_FILE_ATTRIBUTE_DATA
     LOCAL strAsciiAsmText[32]:BYTE
+
+    
+    IFDEF DEBUG32
+    PrintText 'CDOutputAsmFile'
+    ENDIF
 
     ;--------------------------------------------------------------------------
     ; Construct asm output filename and create the output file
@@ -1400,7 +1491,7 @@ CDOutputAsmFile PROC USES EBX
     ;--------------------------------------------------------------------------
     ; Create our output asm file
     ;--------------------------------------------------------------------------
-    Invoke CreateFile, Addr CDAsmFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL
+    Invoke CreateFile, Addr CDAsmFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_FLAG_WRITE_THROUGH, NULL
     .IF eax == INVALID_HANDLE_VALUE
         IFDEF DEBUG32
         PrintText 'CDOutputAsmFile CreateFile CDOutputAsmFile Failed'
@@ -1409,6 +1500,9 @@ CDOutputAsmFile PROC USES EBX
         ret
     .ENDIF
     mov hFile, eax
+    IFDEF DEBUG32
+    PrintText 'CDOutputAsmFile CreateFile OK'
+    ENDIF
     
     mov eax, CDFileSize
     mov LenDataRaw, eax
@@ -1456,7 +1550,8 @@ CDOutputAsmFile PROC USES EBX
     add LenDataAsm, 16  ; ' Bytes' +CRLFs x 2
     add LenDataAsm, 4   ; % and CRLF
     add LenDataAsm, 8   ; (x:1) and CRLF
-    add LenDataAsm, 16
+    add LenDataAsm, 256
+    and LenDataAsm, 0FFFFFFF0h
     
     ;--------------------------------------------------------------------------
     ; Alloc memory for asm hex output
@@ -1471,6 +1566,9 @@ CDOutputAsmFile PROC USES EBX
         ret
     .ENDIF
     mov pAsmData, eax
+    IFDEF DEBUG32
+    PrintText 'CDOutputAsmFile GlobalAlloc OK'
+    ENDIF
     
     mov eax, CDMemMapPtr
     mov pRawData, eax
@@ -1509,12 +1607,12 @@ CDOutputAsmFile PROC USES EBX
     fidiv CDFileSizeUncompressed
     fimul CDFileSize
     fistp DWORD PTR percentage
-    fstp st(0)
+    ;fstp st(0)
     
     fild CDFileSizeUncompressed
     fidiv CDFileSize
     fistp DWORD PTR ratio
-    fstp st(0)
+    ;fstp st(0)
     
     mov eax, 100
     sub eax, percentage
@@ -1543,10 +1641,20 @@ CDOutputAsmFile PROC USES EBX
 
     Invoke lstrcat, pAsmData, Addr szASMCmtLine
     
-    Invoke lstrcat, pAsmData, Addr szASMData
+    .IF bAsmDataSeg == TRUE
+        Invoke lstrcat, pAsmData, Addr szASMData
+    .ELSE
+        Invoke lstrcat, pAsmData, Addr szASMConst
+    .ENDIF
     Invoke lstrcat, pAsmData, Addr CDFileNameOnly
     Invoke lstrcat, pAsmData, Addr szASMSlash
     
+    Invoke lstrlen, pAsmData
+    mov nAsmData, eax
+    
+    IFDEF DEBUG32
+    PrintText 'CDOutputAsmFile Loop start'
+    ENDIF
     ;--------------------------------------------------------------------------
     ; Loop start
     ;--------------------------------------------------------------------------
@@ -1555,56 +1663,171 @@ CDOutputAsmFile PROC USES EBX
     mov nRawData, 0
     mov eax, 0
     .WHILE eax < LenDataRaw
+    
+        mov edi, pAsmData
+        add edi, nAsmData
         
+        mov esi, pRawData
+        add esi, nRawData
+        
+        ;----------------------------------------------------------------------
+        ; Start of row
+        ;----------------------------------------------------------------------
         .IF nCurrentCol == 0
-            Invoke lstrcat, pAsmData, Addr szASMRowStart
-            Invoke lstrcat, pAsmData, Addr szASMhcs01st
+            mov eax, nAsmData
+            add eax, dwASMRowStartLength
+            .IF eax < LenDataAsm
+                Invoke RtlMoveMemory, edi, Addr szASMRowStart, dwASMRowStartLength
+                mov eax, dwASMRowStartLength
+                add nAsmData, eax
+            .ENDIF
+            
+            mov edi, pAsmData
+            add edi, nAsmData
+            
+            mov eax, nAsmData
+            add eax, dwASMhcs01stLength
+            .IF eax < LenDataAsm
+                Invoke RtlMoveMemory, edi, Addr szASMhcs01st, dwASMhcs01stLength
+                mov eax, dwASMhcs01stLength
+                add nAsmData, eax
+            .ENDIF
         .ENDIF
         
-        mov ebx, pRawData
-        add ebx, nRawData
-
-        Invoke CDRawToHexString, ebx, MaxDataPos, 1, Addr strAsciiAsmText, TRUE, FALSE
-        add nRawData, 1
-
-        Invoke lstrcat, pAsmData, Addr strAsciiAsmText
+        ;----------------------------------------------------------------------
+        ; Convert data byte to hex ascii
+        ;----------------------------------------------------------------------
+        mov edi, pAsmData
+        add edi, nAsmData
+        
+        movzx eax, byte ptr [esi]
+        mov ah, al
+        ror al, 4                   ; shift in next hex digit
+        and al, 0FH                 ; get digit
+        .IF al < 10
+            add al, "0"             ; convert digits 0-9 to ascii
+        .ELSE
+            add al, ("A"-10)        ; convert digits 0Ah to 0Fh to uppercase ascii A-F
+        .ENDIF
+        mov byte ptr [edi], al      ; store the asciihex(AL) in the string   
+        inc edi
+        inc nAsmData
+        mov al,ah
+        
+        and al, 0FH                 ; get digit
+        .IF al < 10
+            add al, "0"             ; convert digits 0-9 to ascii
+        .ELSE
+            add al, ("A"-10)        ; convert digits 0Ah to 0Fh to uppercase ascii A-F
+        .ENDIF
+        mov byte ptr [edi], al      ; store the asciihex(AL) in the string   
+        inc nAsmData
+        
+        ;----------------------------------------------------------------------
+        ; Row Processing, split row every 16th column
+        ;----------------------------------------------------------------------
+        mov edi, pAsmData
+        add edi, nAsmData
         
         inc nCurrentCol
         mov eax, nCurrentCol
         .IF eax == 16
-            Invoke lstrcat, pAsmData, Addr szASMRowEnd
+            
+            ;------------------------------------------------------------------
+            ; End of Row
+            ;------------------------------------------------------------------
+            mov eax, nAsmData
+            add eax, dwASMRowEndLength
+            .IF eax < LenDataAsm
+                Invoke RtlMoveMemory, edi, Addr szASMRowEnd, dwASMRowEndLength
+                mov eax, dwASMRowEndLength
+                add nAsmData, eax
+            .ENDIF
+            
             mov nCurrentCol, 0
         .ELSE
+        
             mov eax, nRawData
+            inc eax
             .IF eax < LenDataRaw
-                Invoke lstrcat, pAsmData, Addr szASMhcs0
+                
+                ;--------------------------------------------------------------
+                ; Row Continues
+                ;--------------------------------------------------------------
+                mov eax, nAsmData
+                add eax, dwASMhcs0Length
+                .IF eax < LenDataAsm
+                    Invoke RtlMoveMemory, edi, Addr szASMhcs0, dwASMhcs0Length
+                    mov eax, dwASMhcs0Length
+                    add nAsmData, eax
+                .ENDIF
+            
             .ELSE
-                Invoke lstrcat, pAsmData, Addr szASMRowEnd
+                ;--------------------------------------------------------------
+                ; End of Data - Last Row End
+                ;--------------------------------------------------------------
+                mov eax, nAsmData
+                add eax, dwASMRowEndLength
+                .IF eax < LenDataAsm
+                    Invoke RtlMoveMemory, edi, Addr szASMRowEnd, dwASMRowEndLength
+                    mov eax, dwASMRowEndLength
+                    add nAsmData, eax
+                .ENDIF
+                
             .ENDIF
+        
         .ENDIF
-
+        
+        ;----------------------------------------------------------------------
+        ; Fetch next data byte to convert and loop again if < LenRawData
+        ;----------------------------------------------------------------------
+        inc nRawData
         mov eax, nRawData
     .ENDW
     
-    ;--------------------------------------------------------------------------
-    ; Do end where we define length of data using namelength dd $ - name
-    ;--------------------------------------------------------------------------
-    Invoke lstrcat, pAsmData, Addr szASMCFLF 
-    Invoke lstrcat, pAsmData, Addr CDFileNameOnly
-    Invoke lstrcat, pAsmData, Addr szASMLength
-    Invoke lstrcat, pAsmData, Addr CDFileNameOnly
-    Invoke lstrcat, pAsmData, Addr szASMCFLF 
+    mov edi, pAsmData
+    add edi, nAsmData
+    Invoke RtlMoveMemory, edi, Addr szASMCFLF, dwASMCFLFLength
+    mov eax, dwASMCFLFLength
+    add nAsmData, eax
     
-    ;--------------------------------------------------------------------------
-    ; Write out asm hex text buffer to file
-    ;--------------------------------------------------------------------------
-    Invoke lstrlen, pAsmData
-    mov LenDataAsm, eax
-    Invoke WriteFile, hFile, pAsmData, LenDataAsm, Addr BytesWritten, NULL
+    mov edi, pAsmData
+    add edi, nAsmData
+    Invoke RtlMoveMemory, edi, Addr CDFileNameOnly, LenFileNameOnly
+    mov eax, LenFileNameOnly
+    add nAsmData, eax
     
+    mov edi, pAsmData
+    add edi, nAsmData
+    Invoke RtlMoveMemory, edi, Addr szASMLength, dwASMLengthLength
+    mov eax, dwASMLengthLength
+    add nAsmData, eax
+    
+    mov edi, pAsmData
+    add edi, nAsmData
+    Invoke RtlMoveMemory, edi, Addr CDFileNameOnly, LenFileNameOnly
+    mov eax, LenFileNameOnly
+    add nAsmData, eax
+    
+    mov edi, pAsmData
+    add edi, nAsmData
+    Invoke RtlMoveMemory, edi, Addr szASMCFLF, dwASMCFLFLength
+    mov eax, dwASMCFLFLength
+    add nAsmData, eax
+    
+    Invoke WriteFile, hFile, pAsmData, nAsmData, Addr BytesWritten, NULL
+    .IF eax == 0
+        IFDEF DEBUG32
+        PrintText 'CDOutputAsmFile WriteFile Failed'
+        ENDIF
+    .ENDIF
+    IFDEF DEBUG32
+    PrintText 'CDOutputAsmFile WriteFile OK'
+    ENDIF
     ;--------------------------------------------------------------------------
     ; Cleanup
     ;--------------------------------------------------------------------------
+    Invoke FlushFileBuffers, hFile
     Invoke CloseHandle, hFile
     
     Invoke GlobalFree, pAsmData
@@ -1750,140 +1973,6 @@ CDBitmapCreateFromMem PROC USES ECX EDX pBitmapData:DWORD
 @@:
     ret
 CDBitmapCreateFromMem ENDP
-
-;------------------------------------------------------------------------------
-; CDRawToHexString - Convert raw bytes to a human readable hex based string
-; lpszAsciiHexString should be >= 2x the size of dwRawSize+1 byte for null
-;
-; Returns: TRUE if success, FALSE otherwise
-;------------------------------------------------------------------------------
-CDRawToHexString PROC USES EBX EDI ESI lpRaw:DWORD, lpRawMax:DWORD, dwRawSize:DWORD, lpszAsciiHexString:DWORD, bUpperCase:DWORD, bByteSwap:DWORD
-    LOCAL pos:DWORD
-    LOCAL posmax:DWORD
-    LOCAL BytesRead:DWORD
-    
-    .IF lpRaw == NULL || dwRawSize == 0 || lpszAsciiHexString == NULL
-        mov eax, 0
-        ret
-    .ENDIF
-    
-    mov eax, lpRaw
-    .IF eax >= lpRawMax
-        mov ebx, lpszAsciiHexString
-        mov byte ptr [ebx], 0
-        mov eax, 0
-        ret
-    .ENDIF
-    mov eax, lpRawMax
-    mov posmax, eax
-    mov BytesRead, 0
-    
-    .IF bByteSwap == FALSE
-        mov pos, 0
-        mov edi, lpszAsciiHexString
-        mov esi, lpRaw
-        mov eax, pos
-        .WHILE eax < dwRawSize
-            movzx eax, byte ptr [esi]
-            mov ah,al
-            ror al, 4                   ; shift in next hex digit
-            and al, 0FH                 ; get digit
-            .IF al < 10
-                add al, "0"             ; convert digits 0-9 to ascii
-            .ELSE
-                .IF bUpperCase == TRUE
-                    add al, ("A"-10)    ; convert digits 0Ah to 0Fh to uppercase ascii A-F
-                .ELSE
-                    add al, ("a"-10)    ; convert digits 0Ah to 0Fh to lowercase ascii a-f
-                .ENDIF
-            .ENDIF
-            mov byte ptr [edi], al      ; store the asciihex(AL) in the string   
-            inc edi
-            mov al,ah
-            
-            and al, 0FH                 ; get digit
-            .IF al < 10
-                add al, "0"             ; convert digits 0-9 to ascii
-            .ELSE
-                .IF bUpperCase == TRUE
-                    add al, ("A"-10)    ; convert digits 0Ah to 0Fh to uppercase ascii A-F
-                .ELSE
-                    add al, ("a"-10)    ; convert digits 0Ah to 0Fh to lowercase ascii a-f
-                .ENDIF
-            .ENDIF
-            mov byte ptr [edi], al      ; store the asciihex(AL) in the string   
-            
-            inc edi
-            inc esi
-            .IF esi > posmax
-                .BREAK
-            .ENDIF
-            inc BytesRead
-            inc pos
-            mov eax, pos
-        .ENDW
-        mov byte ptr [edi], 0
-    
-    .ELSE ; bByteSwap == TRUE
-    
-        mov eax, dwRawSize
-        mov pos, eax
-        
-        mov edi, lpszAsciiHexString
-        mov esi, lpRaw
-        add esi, dwRawSize
-        dec esi
-        .IF esi >= posmax
-            dec esi
-            mov eax, posmax
-            sub eax, esi
-            sub pos, eax
-            mov esi, posmax
-            dec esi
-        .ENDIF
-        mov eax, pos
-        .WHILE eax > 0
-            movzx eax, byte ptr [esi]
-            mov ah,al
-            ror al, 4                   ; shift in next hex digit
-            and al, 0FH                 ; get digit
-            .IF al < 10
-                add al, "0"             ; convert digits 0-9 to ascii
-            .ELSE
-                .IF bUpperCase == TRUE
-                    add al, ("A"-10)    ; convert digits 0Ah to 0Fh to uppercase ascii A-F
-                .ELSE
-                    add al, ("a"-10)    ; convert digits 0Ah to 0Fh to lowercase ascii a-f
-                .ENDIF
-            .ENDIF
-            mov byte ptr [edi], al      ; store the asciihex(AL) in the string   
-            inc edi
-            mov al,ah
-            
-            and al, 0FH                 ; get digit
-            .IF al < 10
-                add al, "0"             ; convert digits 0-9 to ascii
-            .ELSE
-                .IF bUpperCase == TRUE
-                    add al, ("A"-10)    ; convert digits 0Ah to 0Fh to uppercase ascii A-F
-                .ELSE
-                    add al, ("a"-10)    ; convert digits 0Ah to 0Fh to lowercase ascii a-f
-                .ENDIF
-            .ENDIF
-            mov byte ptr [edi], al      ; store the asciihex(AL) in the string   
-            
-            inc BytesRead
-            inc edi
-            dec esi
-            dec pos
-            mov eax, pos
-        .ENDW
-        mov byte ptr [edi], 0
-    .ENDIF
-    
-    mov eax, BytesRead
-    ret
-CDRawToHexString ENDP
 
 ;------------------------------------------------------------------------------
 ; CDJustFname - Strip path name to just filename Without extention

@@ -70,12 +70,12 @@ CDTextAsmOutput                 PROTO hWin:DWORD, lpData:DWORD, dwDataLength:DWO
 
 
 ; Reference to other functions in other files:
-EXTERN CDCompressMem:           PROTO lpUncompressedData:DWORD, dwUncompressedDataLength:DWORD, dwCompressionAlgorithm:DWORD
+EXTERN CDCompressMem:           PROTO lpUncompressedData:DWORD, dwUncompressedDataLength:DWORD, dwCompressionAlgorithm:DWORD, lpdwCompressedDataLength:DWORD
 EXTERN CDDecompressMem:         PROTO pCompressedData:DWORD, dwCompressedDataLength:DWORD
 
 .CONST
-CDTEXT_MAX_INPUTTEXT            EQU 64000
-CDTEXT_MAX_OUTPUTTEXT           EQU 400000
+CDTEXT_MAX_INPUTTEXT            EQU 262144  ; 256K
+CDTEXT_MAX_OUTPUTTEXT           EQU 2097152 ; 2048K
 
 BMP_CLEARTEXT_WIDE              EQU 141 ; Images/ClearTextWide.bmp
 BMP_LOADFILE_WIDE               EQU 142 ; Images/LoadFileWide.bmp"
@@ -128,8 +128,8 @@ hCDTextToolTip                  DD 0
 hCDTextEditInput                DD 0
 hCDTextEditOutput               DD 0
 
-pEdtInputBuffer                 DD 0 ; max 64,000
-pEdtOutputBuffer                DD 0 ; max 400,000
+pEdtInputBuffer                 DD 0 ; max 256K
+pEdtOutputBuffer                DD 0 ; max 2048K
 
 .CODE
 ;------------------------------------------------------------------------------
@@ -429,7 +429,8 @@ CDTextInitGUI PROC USES EBX hWin:DWORD
     
     Invoke SendMessage, hCDTextEditInput, WM_SETFONT, hFontEdt, TRUE
     Invoke SendMessage, hCDTextEditOutput, WM_SETFONT, hFontEdt, TRUE
-    Invoke SendMessage, hCDTextEditOutput, EM_SETLIMITTEXT, 400000, 0
+    Invoke SendMessage, hCDTextEditOutput, EM_SETLIMITTEXT, CDTEXT_MAX_INPUTTEXT, 0     ; Limit to 256K
+    Invoke SendMessage, hCDTextEditOutput, EM_SETLIMITTEXT, CDTEXT_MAX_OUTPUTTEXT, 0    ; Limit to 2048K
     
     xor eax, eax
     ret
@@ -821,7 +822,7 @@ CDTextCompressText ENDP
 ;
 ; Returns: TRUE or FALSE
 ;------------------------------------------------------------------------------
-CDTextAsmOutput PROC USES EBX hWin:DWORD, lpData:DWORD, dwDataLength:DWORD, dwOriginalLength:DWORD, dwAlgorithm:DWORD
+CDTextAsmOutput PROC USES EBX EDI ESI hWin:DWORD, lpData:DWORD, dwDataLength:DWORD, dwOriginalLength:DWORD, dwAlgorithm:DWORD
     LOCAL pAsmData:DWORD
     LOCAL nAsmData:DWORD
     LOCAL pRawData:DWORD
@@ -833,6 +834,7 @@ CDTextAsmOutput PROC USES EBX hWin:DWORD, lpData:DWORD, dwDataLength:DWORD, dwOr
     LOCAL nCurrentRow:DWORD
     LOCAL nCurrentCol:DWORD
     LOCAL LenMasmLabel:DWORD
+    LOCAL LenAsciiAsmText:DWORD
     LOCAL szMasmLabel[32]:BYTE
     LOCAL strAsciiAsmText[32]:BYTE
     
@@ -899,6 +901,8 @@ CDTextAsmOutput PROC USES EBX hWin:DWORD, lpData:DWORD, dwDataLength:DWORD, dwOr
     add LenDataAsm, 4                           ; 2 x CRLF
     add LenDataAsm, 4                           ; 2 x CRLF
     add LenDataAsm, 42                          ; space semicolon space (original bytes >> compressed bytes) = 4 + 12 + 9 + 12 + 7 'bytes >> ' 
+    add LenDataAsm, 64
+    and LenDataAsm, 0FFFFFFF0h
     
     ;--------------------------------------------------------------------------
     ; Alloc memory for asm hex output
@@ -917,6 +921,9 @@ CDTextAsmOutput PROC USES EBX hWin:DWORD, lpData:DWORD, dwDataLength:DWORD, dwOr
     Invoke lstrcat, pAsmData, Addr szMasmLabel
     Invoke lstrcat, pAsmData, Addr szASMSlash
 
+    Invoke lstrlen, pAsmData
+    mov nAsmData, eax
+
     ;--------------------------------------------------------------------------
     ; Loop start
     ;--------------------------------------------------------------------------
@@ -925,66 +932,227 @@ CDTextAsmOutput PROC USES EBX hWin:DWORD, lpData:DWORD, dwDataLength:DWORD, dwOr
     mov nRawData, 0
     mov eax, 0
     .WHILE eax < LenDataRaw
+    
+        mov edi, pAsmData
+        add edi, nAsmData
         
+        mov esi, pRawData
+        add esi, nRawData
+        
+        ;----------------------------------------------------------------------
+        ; Start of row
+        ;----------------------------------------------------------------------
         .IF nCurrentCol == 0
-            Invoke lstrcat, pAsmData, Addr szASMRowStart
-            Invoke lstrcat, pAsmData, Addr szASMhcs01st
+            mov eax, nAsmData
+            add eax, dwASMRowStartLength
+            .IF eax < LenDataAsm
+                Invoke RtlMoveMemory, edi, Addr szASMRowStart, dwASMRowStartLength
+                mov eax, dwASMRowStartLength
+                add nAsmData, eax
+            .ENDIF
+            
+            mov edi, pAsmData
+            add edi, nAsmData
+            
+            mov eax, nAsmData
+            add eax, dwASMhcs01stLength
+            .IF eax < LenDataAsm
+                Invoke RtlMoveMemory, edi, Addr szASMhcs01st, dwASMhcs01stLength
+                mov eax, dwASMhcs01stLength
+                add nAsmData, eax
+            .ENDIF
         .ENDIF
         
-        mov ebx, pRawData
-        add ebx, nRawData
+        ;----------------------------------------------------------------------
+        ; Convert data byte to hex ascii
+        ;----------------------------------------------------------------------
+        mov edi, pAsmData
+        add edi, nAsmData
 
-        Invoke CDRawToHexString, ebx, MaxDataPos, 1, Addr strAsciiAsmText, TRUE, FALSE
-        add nRawData, 1
-
-        Invoke lstrcat, pAsmData, Addr strAsciiAsmText
+        movzx eax, byte ptr [esi]
+        mov ah, al
+        ror al, 4                   ; shift in next hex digit
+        and al, 0FH                 ; get digit
+        .IF al < 10
+            add al, "0"             ; convert digits 0-9 to ascii
+        .ELSE
+            add al, ("A"-10)        ; convert digits 0Ah to 0Fh to uppercase ascii A-F
+        .ENDIF
+        mov byte ptr [edi], al      ; store the asciihex(AL) in the string   
+        inc edi
+        inc nAsmData
+        mov al,ah
+        
+        and al, 0FH                 ; get digit
+        .IF al < 10
+            add al, "0"             ; convert digits 0-9 to ascii
+        .ELSE
+            add al, ("A"-10)        ; convert digits 0Ah to 0Fh to uppercase ascii A-F
+        .ENDIF
+        mov byte ptr [edi], al      ; store the asciihex(AL) in the string   
+        inc nAsmData
+        
+        ;----------------------------------------------------------------------
+        ; Row Processing, split row every 16th column
+        ;----------------------------------------------------------------------
+        mov edi, pAsmData
+        add edi, nAsmData
         
         inc nCurrentCol
         mov eax, nCurrentCol
         .IF eax == 16
-            Invoke lstrcat, pAsmData, Addr szASMRowEnd
+            
+            ;------------------------------------------------------------------
+            ; End of Row
+            ;------------------------------------------------------------------
+            mov eax, nAsmData
+            add eax, dwASMRowEndLength
+            .IF eax < LenDataAsm
+                Invoke RtlMoveMemory, edi, Addr szASMRowEnd, dwASMRowEndLength
+                mov eax, dwASMRowEndLength
+                add nAsmData, eax
+            .ENDIF
+            
             mov nCurrentCol, 0
         .ELSE
+        
             mov eax, nRawData
+            inc eax
             .IF eax < LenDataRaw
-                Invoke lstrcat, pAsmData, Addr szASMhcs0
+                
+                ;--------------------------------------------------------------
+                ; Row Continues
+                ;--------------------------------------------------------------
+                mov eax, nAsmData
+                add eax, dwASMhcs0Length
+                .IF eax < LenDataAsm
+                    Invoke RtlMoveMemory, edi, Addr szASMhcs0, dwASMhcs0Length
+                    mov eax, dwASMhcs0Length
+                    add nAsmData, eax
+                .ENDIF
+            
             .ELSE
-                Invoke lstrcat, pAsmData, Addr szASMRowEnd
+                ;--------------------------------------------------------------
+                ; End of Data - Last Row End
+                ;--------------------------------------------------------------
+                mov eax, nAsmData
+                add eax, dwASMRowEndLength
+                .IF eax < LenDataAsm
+                    Invoke RtlMoveMemory, edi, Addr szASMRowEnd, dwASMRowEndLength
+                    mov eax, dwASMRowEndLength
+                    add nAsmData, eax
+                .ENDIF
+                
             .ENDIF
+        
         .ENDIF
-
+        
+        ;----------------------------------------------------------------------
+        ; Fetch next data byte to convert and loop again if < LenRawData
+        ;----------------------------------------------------------------------
+        inc nRawData
         mov eax, nRawData
     .ENDW
-    
+
     ;--------------------------------------------------------------------------
     ; Do end where we define length of data using namelength dd $ - name
     ;--------------------------------------------------------------------------
-    Invoke lstrcat, pAsmData, Addr szASMCFLF 
-    Invoke lstrcat, pAsmData, Addr szMasmLabel
-    Invoke lstrcat, pAsmData, Addr szASMLength
-    Invoke lstrcat, pAsmData, Addr szMasmLabel
-    .IF dwAlgorithm != 0
-        Invoke lstrcat, pAsmData, Addr szASMTextStart
-        Invoke dwtoa, dwOriginalLength, Addr strAsciiAsmText
-        Invoke lstrcat, pAsmData, Addr strAsciiAsmText
-        Invoke lstrcat, pAsmData, Addr szASMTextMiddle
-        Invoke dwtoa, dwDataLength, Addr strAsciiAsmText
-        Invoke lstrcat, pAsmData, Addr strAsciiAsmText
-        Invoke lstrcat, pAsmData, Addr szASMTextEnd
-    .ELSE
-        Invoke lstrcat, pAsmData, Addr szASMTextStart
-        Invoke dwtoa, dwOriginalLength, Addr strAsciiAsmText
-        Invoke lstrcat, pAsmData, Addr strAsciiAsmText
-        Invoke lstrcat, pAsmData, Addr szASMTextEnd
-    .ENDIF
-    Invoke lstrcat, pAsmData, Addr szASMCFLF 
+    mov edi, pAsmData
+    add edi, nAsmData
+    Invoke RtlMoveMemory, edi, Addr szASMCFLF, dwASMCFLFLength
+    mov eax, dwASMCFLFLength
+    add nAsmData, eax
     
+    mov edi, pAsmData
+    add edi, nAsmData
+    Invoke RtlMoveMemory, edi, Addr szMasmLabel, LenMasmLabel
+    mov eax, LenMasmLabel
+    add nAsmData, eax
+    
+    mov edi, pAsmData
+    add edi, nAsmData
+    Invoke RtlMoveMemory, edi, Addr szASMLength, dwASMLengthLength
+    mov eax, dwASMLengthLength
+    add nAsmData, eax
+    
+    mov edi, pAsmData
+    add edi, nAsmData
+    Invoke RtlMoveMemory, edi, Addr szMasmLabel, LenMasmLabel
+    mov eax, LenMasmLabel
+    add nAsmData, eax
+    
+    .IF dwAlgorithm != 0
+    
+        mov edi, pAsmData
+        add edi, nAsmData
+        Invoke RtlMoveMemory, edi, Addr szASMTextStart, dwASMTextStartLength
+        mov eax, dwASMTextStartLength
+        add nAsmData, eax
+        
+        Invoke dwtoa, dwOriginalLength, Addr strAsciiAsmText
+        Invoke lstrlen, Addr strAsciiAsmText
+        mov LenAsciiAsmText, eax
+        mov edi, pAsmData
+        add edi, nAsmData
+        Invoke RtlMoveMemory, edi, Addr strAsciiAsmText, LenAsciiAsmText
+        mov eax, LenAsciiAsmText
+        add nAsmData, eax
+    
+        mov edi, pAsmData
+        add edi, nAsmData
+        Invoke RtlMoveMemory, edi, Addr szASMTextMiddle, dwASMTextMiddleLength
+        mov eax, dwASMTextMiddleLength
+        add nAsmData, eax
+        
+        Invoke dwtoa, dwDataLength, Addr strAsciiAsmText
+        Invoke lstrlen, Addr strAsciiAsmText
+        mov LenAsciiAsmText, eax
+        mov edi, pAsmData
+        add edi, nAsmData
+        Invoke RtlMoveMemory, edi, Addr strAsciiAsmText, LenAsciiAsmText
+        mov eax, LenAsciiAsmText
+        add nAsmData, eax
+        
+        mov edi, pAsmData
+        add edi, nAsmData
+        Invoke RtlMoveMemory, edi, Addr szASMTextEnd, dwASMTextEndLength
+        mov eax, dwASMTextEndLength
+        add nAsmData, eax
+        
+    .ELSE
+    
+        mov edi, pAsmData
+        add edi, nAsmData
+        Invoke RtlMoveMemory, edi, Addr szASMTextStart, dwASMTextStartLength
+        mov eax, dwASMTextStartLength
+        add nAsmData, eax
+        
+        Invoke dwtoa, dwOriginalLength, Addr strAsciiAsmText
+        Invoke lstrlen, Addr strAsciiAsmText
+        mov LenAsciiAsmText, eax
+        mov edi, pAsmData
+        add edi, nAsmData
+        Invoke RtlMoveMemory, edi, Addr strAsciiAsmText, LenAsciiAsmText
+        mov eax, LenAsciiAsmText
+        add nAsmData, eax
+    
+        mov edi, pAsmData
+        add edi, nAsmData
+        Invoke RtlMoveMemory, edi, Addr szASMTextEnd, dwASMTextEndLength
+        mov eax, dwASMTextEndLength
+        add nAsmData, eax
+    
+    .ENDIF
+
+    mov edi, pAsmData
+    add edi, nAsmData
+    Invoke RtlMoveMemory, edi, Addr szASMCFLF, dwASMCFLFLength
+    mov eax, dwASMCFLFLength
+    add nAsmData, eax
+
     ;--------------------------------------------------------------------------
     ; Output asm text to edit control and free up memory
-    ;--------------------------------------------------------------------------
-    Invoke lstrlen, pAsmData
-    mov nAsmData, eax
-    ;Invoke SetFocus, hCDTextEditOutput
+    ;--------------------------------------------------------------------------    
     Invoke SetWindowText, hCDTextEditOutput, pAsmData
     mov eax, nAsmData
     sub eax, 2 ; move back past CRLF

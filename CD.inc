@@ -55,33 +55,6 @@
 ;
 ;------------------------------------------------------------------------------
 ;
-; CD.EXE 57.0 KB (58,368 bytes) without LZMA resources (normal bitmap resources)
-;
-; About_Button.bmp            6.05 KB (6,198 bytes)
-; About_Menu.bmp              1.61 KB (1,654 bytes)
-; Compress_Button.bmp         6.05 KB (6,198 bytes)
-; Compress_Menu.bmp           1.05 KB (1,078 bytes)
-; Decompress_Button.bmp       6.05 KB (6,198 bytes)
-; Decompress_Menu.bmp         1.05 KB (1,078 bytes)
-; Exit_Button.bmp             6.05 KB (6,198 bytes)
-; Exit_Menu.bmp               1.05 KB (1,078 bytes)
-;                             ---------------------
-;                            28.90 KB (29,680 bytes)
-;
-;
-; CD.EXE 31.0 KB (31,744 bytes) with LZMA resources (RC_DATA lzma files)
-;
-; About_Button.bmp.lzms       0.36 KB (366 Bytes)
-; About_Menu.bmp.lzms         0.26 KB (262 Bytes)
-; Compress_Button.bmp.lzms    0.42 KB (426 Bytes)
-; Compress_Menu.bmp.lzms      0.30 KB (304 Bytes)
-; Decompress_Button.bmp.lzms  0.35 KB (352 Bytes)
-; Decompress_Menu.bmp.lzms    0.27 KB (272 Bytes)
-; Exit_Button.bmp.lzms        0.33 KB (332 Bytes)
-; Exit_Menu.bmp.lzms          0.36 KB (366 Bytes)
-;                             ---------------------
-;                             2.61 KB (2,680 bytes)
-;
 ; Project->Project Options has a define added to the resource compiler as
 ; "/d LZMA_RESOURCES" to allow for switching between resource files in CD.rc
 ; (CDRes.rc.lzma or CDRes.rc.normal):
@@ -145,7 +118,6 @@ CDBitmapCreateFromMem           PROTO pBitmapData:DWORD
 CDOutputAsmFile                 PROTO
 
 ; Utility Functions
-CDRawToHexString                PROTO lpRaw:DWORD, lpRawMax:DWORD, dwRawSize:DWORD, lpszAsciiHexString:DWORD, bUpperCase:DWORD, bByteSwap:DWORD
 CDJustFname                     PROTO szFilePathName:DWORD, szFileName:DWORD
 CDJustFnameExt                  PROTO szFilePathName:DWORD, szFileName:DWORD
 
@@ -173,6 +145,7 @@ BMP_DECOMPRESS_MENU             EQU 112 ; Images/Decompress_Menu.bmp
 BMP_EXIT_MENU                   EQU 113 ; Images/Exit_Menu.bmp
 BMP_ABOUT_MENU                  EQU 114 ; Images/About_Menu.bmp
 BMP_TEXT_MENU                   EQU 115 ; Images/Text_Menu.bmp
+BMP_TEXT_WIDE                   EQU 116 ; Images/Text_Button.bmp
 LZMA_COMPRESS_WIDE              EQU 121 ; Images/Compress_Button.bmp.lzms
 LZMA_DECOMPRESS_WIDE            EQU 122 ; Images/Decompress_Button.bmp.lzms
 LZMA_EXIT_WIDE                  EQU 123 ; Images/Exit_Button.bmp.lzms
@@ -182,6 +155,7 @@ LZMA_DECOMPRESS_MENU            EQU 132 ; Images/Decompress_Menu.bmp.lzms
 LZMA_EXIT_MENU                  EQU 133 ; Images/Exit_Menu.bmp.lzms
 LZMA_ABOUT_MENU                 EQU 134 ; Images/About_Menu.bmp.lzms
 LZMA_TEXT_MENU                  EQU 135 ; Images/Text_Menu.bmp.lzms
+LZMA_TEXT_WIDE                  EQU 136 ; Images/Text_Button.bmp.lzms
 
 ; Accelerators:
 ACCTABLE                        EQU 300
@@ -197,23 +171,26 @@ ACC_BTN_PASTE                   equ 309 ; ALT+P
 ACC_BTN_COPY                    equ 310 ; ALT+C
 ACC_BTN_LOAD                    equ 311 ; ALT+L
 ACC_BTN_SAVE                    equ 312 ; ALT+S
+ACC_BTN_TEXT                    equ 313 ; ALT+T
 
 ;CD.dlg Resource IDs:
 IDD_DIALOG                      EQU 1000
-IDC_STC_INFO                    EQU 1001 ; TipID = 2001
-IDC_RBN_XPRESS                  EQU 1002 ; TipID = 2002 
-IDC_RBN_XPRESS_HUFF             EQU 1003 ; TipID = 2003
-IDC_RBN_MSZIP                   EQU 1004 ; TipID = 2004
-IDC_RBN_LZMS                    EQU 1005 ; TipID = 2005
-IDC_BTN_COMPRESS                EQU 1006 ; TipID = 2006
-IDC_BTN_DECOMPRESS              EQU 1007 ; TipID = 2007
-IDC_BTN_EXIT                    EQU 1008 ; TipID = 2008
-IDC_STATUSBAR                   EQU 1009 ; TipID = 2009
-IDC_CHK_ASM                     EQU 1010 ; TipID = 2010
-IDC_SHP1                        EQU 1011 ; TipID = 2011
-IDC_BTN_ABOUT                   EQU 1012 ; TipID = 2012
-IDC_SHP2                        EQU 1013 ; TipID = 2013
-IDC_BTN_BIN2DBEX                EQU 1014 ; TipID = 2013
+IDC_STC_INFO                    EQU 1001
+IDC_RBN_XPRESS                  EQU 1002
+IDC_RBN_XPRESS_HUFF             EQU 1003
+IDC_RBN_MSZIP                   EQU 1004
+IDC_RBN_LZMS                    EQU 1005
+IDC_BTN_COMPRESS                EQU 1006
+IDC_BTN_DECOMPRESS              EQU 1007
+IDC_BTN_EXIT                    EQU 1008
+IDC_STATUSBAR                   EQU 1009
+IDC_CHK_ASM                     EQU 1010
+IDC_SHP1                        EQU 1011
+IDC_BTN_ABOUT                   EQU 1012
+IDC_SHP2                        EQU 1013
+IDC_BTN_BIN2DBEX                EQU 1014
+IDC_CHK_ASMSEG                  EQU 1015
+IDC_BTN_TEXT                    EQU 1016
 
 ; Main Menu Resource IDs:
 IDM_MENU                        EQU 10000
@@ -235,6 +212,7 @@ AppName                         DB 'Compress-Decompress Utility',0
 AboutMsg                        DB 'github.com/mrfearless',13,10,'Copyright © fearless 2023',0
 
 bAsmOutput                      DD TRUE
+bAsmDataSeg                     DD TRUE
 
 ; Various Strings & Buffers
 Ext_MSZIP                       DB ".mszp",0
@@ -245,11 +223,16 @@ Ext_ASM                         DB ".asm",0
 
 CDCompressedExt                 DB ".xxx",0
 CDDecompressedExt               DB ".raw",0
-szCompressFile                  DB 'Compressed File: ',0
-szDecompressFile                DB 'Decompressed File: ',0
+szCompressingFile               DB 'Compressing File: ',0
+szDecompressingFile             DB 'Decompressing File: ',0
+szCompressedFile                DB 'Compressed File: ',0
+szDecompressedFile              DB 'Decompressed File: ',0
 szSuccess                       DB ' - Success.',0
 szFailure                       DB ' - Failure.',0
 szFile                          DB 'File: ',0
+szProcessingFile                DB 'Processing File: ',0
+szMASMOutputFile                DB ' (MASM Output)',0
+szPleaseWait                    DB ', please wait...',0
 
 szInfo_XPRESS                   DB 'XPRESS: Medium Compression Ratio | High Decompression Speed | Low Mem Requirement',0
 szInfo_HUFF                     DB 'Huffman: Medium Compression Ratio | Medium-High Decompression Speed | Low Mem Requirement',0
@@ -272,6 +255,7 @@ CDDecompressedFileName          DB MAX_PATH DUP (0)
 CDAsmFileName                   DB MAX_PATH DUP (0)
 CDFileNameOnly                  DB MAX_PATH DUP (0)
 CDFileNameExtOnly               DB MAX_PATH DUP (0)
+CDFileNameExtOnlyOutput         DB MAX_PATH DUP (0)
 szStatusBarMsg                  DB 512 DUP (0)
 
 ; Browse For File File Filters
@@ -306,14 +290,23 @@ szHEADER_LZMS                   DB 'LZMS',0
 
 ; Output of asm related strings
 szASMhcs0                       DB 'h, 0',0 ; h comma space zero - used for asm output - 4
+dwASMhcs0Length                 DD ($ - szASMhcs0) -1
 szASMhcs01st                    DB '0',0 ; first - 1
+dwASMhcs01stLength              DD ($ - szASMhcs01st) -1
 szASMhcs0Lst                    DB 'h',0 ; last - 1
+dwASMhcs0LstLength              DD ($ - szASMhcs0Lst) -1
 szASMRowStart                   DB 'DB ',0 ; - 3
+dwASMRowStartLength             DD ($ - szASMRowStart) -1
 szASMRowEnd                     DB 'h',13,10,0 ; - 3
+dwASMRowEndLength               DD ($ - szASMRowEnd) -1
 szASMSlash                      DB ' \',13,10,0 ; - 4
+dwASMSlashLength                DD ($ - szASMSlash) -1
+szASMConst                      DB 13,10,'.CONST',13,10,13,10,0 ; - 11
 szASMData                       DB 13,10,'.DATA',13,10,13,10,0 ; - 11
 szASMLength                     DB "Length DD $ - ",0 ; 16
+dwASMLengthLength               DD ($ - szASMLength) -1
 szASMCFLF                       DB 13,10,0
+dwASMCFLFLength                 DD ($ - szASMCFLF) -1
 szASMCmtLine                    DB ";------------------------------------------------------------------------------",13,10,0 ; - 82 x 2
 szASMCmtNote                    DB "; CD - Compress-Decompress Utility by fearless",13,10,";",13,10,0 ; - 52
 szASMCmtOrigFile                DB "; Source Filename  : ",0 ; - 21
@@ -325,8 +318,11 @@ szASMBytes                      DB " Bytes",13,10,0 ; 8 x 2
 szASMPcnt                       DB "% (",0 ; 4
 szASMRatio                      DB ":1)",13,10,0
 szASMTextStart                  DB " ; (",0
+dwASMTextStartLength            DD ($ - szASMTextStart) -1
 szASMTextMiddle                 DB " Bytes >> ",0
+dwASMTextMiddleLength           DD ($ - szASMTextMiddle) -1
 szASMTextEnd                    DB " Bytes)",0
+dwASMTextEndLength              DD ($ - szASMTextEnd) -1
 
 .DATA?
 ;------------------------------------------------------------------------------

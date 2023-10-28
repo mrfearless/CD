@@ -1,0 +1,24 @@
+#include "Res/CDTextDlg.rc"
+#include "Res/CDStr.rc"
+#include "Res/CDAcl.rc"
+#include "Res/AboutDlgDlg.rc"
+#include "Res/CDVer.rc"
+#include "Res/CDMnu.rc"
+#include "Res/CDDlg.rc"
+//#include "Res/CDRes.rc"
+
+///* 
+
+#ifdef LZMA_RESOURCES
+//
+// Using LZMA Resources
+//
+#include "Res/CDRes.rc.lzma"
+#else
+//
+// Using Normal Bitmap Resources
+//
+#include "Res/CDRes.rc.normal"
+#endif
+
+//*/
