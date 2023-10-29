@@ -74,6 +74,8 @@ IDC_EDT_INFO                    EQU 17006
 
 .DATA
 mrfearless_github               DB "https://github.com/mrfearless",0
+szStringInMemoryError           DB "This is meant to show some text. Maybe something went wrong?",0
+szShellOpen                     DB "open",0
 pBMPInMemory                    DD 0
 hBMPInMemory                    DD 0
 pStringInMemory                 DD 0
@@ -142,7 +144,7 @@ AboutDlgProc PROC hWin:HWND, iMsg:DWORD, wParam:WPARAM, lParam:LPARAM
             mov pStringInMemory, eax
             Invoke SetWindowText, hEdtInfo, pStringInMemory
         .ELSE
-            Invoke SetWindowText, hEdtInfo, CTEXT("This is meant to show some text. Maybe something went wrong?")
+            Invoke SetWindowText, hEdtInfo, Addr szStringInMemoryError
         .ENDIF
         
         
@@ -194,7 +196,7 @@ AboutDlgProc PROC hWin:HWND, iMsg:DWORD, wParam:WPARAM, lParam:LPARAM
         .ENDIF
         mov eax, lParam
         .IF eax == hWebsiteURL || eax == hAboutBanner
-            Invoke ShellExecute, hWin, CTEXT("open"), Addr mrfearless_github, NULL, NULL, SW_SHOW
+            Invoke ShellExecute, hWin, Addr szShellOpen, Addr mrfearless_github, NULL, NULL, SW_SHOW
         .ENDIF
     .ELSE
         mov eax,FALSE

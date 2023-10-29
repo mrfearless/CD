@@ -70,12 +70,13 @@
 ;
 ;------------------------------------------------------------------------------
 
+; NOTE: Requires Masm64 Library: https://github.com/mrfearless/libraries/tree/master/Masm64
+
 include windows.inc
 include CommCtrl.inc
 include shellapi.inc
-
 include commdlg.inc
-include masm64.inc
+include masm64.inc      ; https://github.com/mrfearless/libraries/tree/master/Masm64
 
 includelib user32.lib
 includelib kernel32.lib
@@ -83,7 +84,7 @@ includelib gdi32.lib
 includelib shell32.lib
 includelib comctl32.lib
 includelib comdlg32.lib
-includelib masm64.lib
+includelib masm64.lib   ; https://github.com/mrfearless/libraries/tree/master/Masm64
 
 include Cabinet.inc
 includelib Cabinet.lib 
@@ -210,6 +211,7 @@ szCDMemoryDisplayDC             DB 'DISPLAY',0
 ClassName                       DB 'DLGCLASS',0
 AppName                         DB 'Compress-Decompress Utility',0
 AboutMsg                        DB 'github.com/mrfearless',13,10,'Copyright © fearless 2023',0
+szTooltipsClass                 DB 'Tooltips_class32',0
 
 bAsmOutput                      DQ TRUE
 bAsmDataSeg                     DQ TRUE

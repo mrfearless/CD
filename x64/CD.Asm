@@ -87,16 +87,16 @@ LZMA_RESOURCES EQU 1 ; comment out to use normal bitmap resources
 
 ;DEBUG64 EQU 1
 
-IFDEF DEBUG64
-    PRESERVEXMMREGS equ 1
-    includelib \UASM\lib\x64\Debug64.lib
-    DBG64LIB equ 1
-    DEBUGEXE textequ <'\UASM\bin\DbgWin.exe'>
-    include \UASM\include\debug64.inc
-    .DATA
-    RDBG_DbgWin	DB DEBUGEXE,0
-    .CODE
-ENDIF
+;IFDEF DEBUG64
+;    PRESERVEXMMREGS equ 1
+;    includelib \UASM\lib\x64\Debug64.lib
+;    DBG64LIB equ 1
+;    DEBUGEXE textequ <'\UASM\bin\DbgWin.exe'>
+;    include \UASM\include\debug64.inc
+;    .DATA
+;    RDBG_DbgWin	DB DEBUGEXE,0
+;    .CODE
+;ENDIF
 
 include CD.inc
 include .\Images\CD128x128x4.bmp.asm
@@ -419,7 +419,7 @@ InitGUI PROC FRAME hWin:QWORD
     ;--------------------------------------------------------------------------
     ; Create tooltip control and enum child controls to set text for each
     ;--------------------------------------------------------------------------
-    Invoke CreateWindowEx, NULL, CTEXT("Tooltips_class32"), NULL, TTS_ALWAYSTIP, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, hWin, NULL, hInstance, NULL
+    Invoke CreateWindowEx, NULL, Addr szTooltipsClass, NULL, TTS_ALWAYSTIP, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, hWin, NULL, hInstance, NULL
     mov hToolTip, rax
     Invoke SendMessage, hToolTip, TTM_SETMAXTIPWIDTH, 0, 350
     invoke SendMessage, hToolTip, TTM_SETDELAYTIME, TTDT_AUTOPOP, 12000

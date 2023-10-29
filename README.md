@@ -1,4 +1,4 @@
-# ![](./assets/CDLogo.png) CD x86
+# ![](./assets/CDLogo.png) CD
 
 **CD** - Compress-Decompress Utility using the Microsoft Compression API
 
@@ -14,9 +14,11 @@ The files compressed by **CD** using those compression algorithms also store a s
 
 - Adding **LZMS** compressed bitmap files (`*.lzms`) as `RC_DATA` resources which are compiled into `CD.exe`. These resources are loaded into memory, and then uncompressed before creating the bitmaps in memory.
 
+**CD** also allows an optional output of compressed data bytes as a masm `.asm` file with '`db`' data defines, similar to the [masm32 sdk](https://masm32.com/) utility **bin2dbex**.
+
 # Download
 
-The latest release can be downloaded [here](https://github.com/mrfearless/cd/blob/master/cd.zip?raw=true), or via the [releases](https://github.com/mrfearless/cd/releases) section of this Github repository.
+The latest x86 and x64 release can be downloaded via the [releases](https://github.com/mrfearless/cd/releases) section of this Github repository.
 
 # Resources
 

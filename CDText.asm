@@ -115,6 +115,10 @@ IDC_BTN_CLOSE                   equ 2021
 
 
 .DATA
+szCDTextCourierNewFont          DB "Courier New",0
+szCDTextSZ                      DB "sz",0
+szCDTextMASM                    DB "MASM",0
+szCDTextTEXT                    DB "Text",0
 
 CDOpenTextFileFilter            DB "Text Files (*.txt,*.asm,*.inc)",0,"*.txt;*.asm;*.inc",0
                                 DB "All Files (*.*)",0,"*.*",0
@@ -362,7 +366,7 @@ CDTextInitGUI PROC USES EBX hWin:DWORD
     ;--------------------------------------------------------------------------
     ; Create tooltip control and enum child controls to set text for each
     ;--------------------------------------------------------------------------
-    Invoke CreateWindowEx, NULL, CTEXT("Tooltips_class32"), NULL, TTS_ALWAYSTIP, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, hWin, NULL, hInstance, NULL
+    Invoke CreateWindowEx, NULL, Addr szTooltipsClass, NULL, TTS_ALWAYSTIP, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, hWin, NULL, hInstance, NULL
     mov hCDTextToolTip, eax
     Invoke SendMessage, hCDTextToolTip, TTM_SETMAXTIPWIDTH, 0, 350
     invoke SendMessage, hCDTextToolTip, TTM_SETDELAYTIME, TTDT_AUTOPOP, 12000
@@ -423,7 +427,7 @@ CDTextInitGUI PROC USES EBX hWin:DWORD
     add eax, 2
     mov lfnt.lfHeight, eax
     lea ebx, lfnt.lfFaceName
-    Invoke lstrcpy, ebx, CTEXT("Courier New")
+    Invoke lstrcpy, ebx, Addr szCDTextCourierNewFont
     Invoke CreateFontIndirect, Addr lfnt
     mov hFontEdt, eax
     
@@ -850,7 +854,7 @@ CDTextAsmOutput PROC USES EBX EDI ESI hWin:DWORD, lpData:DWORD, dwDataLength:DWO
     mov LenDataRaw, eax
 
     ; set a default name for our asm text output 'sz' +AlgoName+ 'Text'
-    Invoke lstrcpy, Addr szMasmLabel, CTEXT("sz")
+    Invoke lstrcpy, Addr szMasmLabel, Addr szCDTextSZ
     
     mov eax, dwAlgorithm
     .IF eax == COMPRESS_ALGORITHM_MSZIP
@@ -862,9 +866,9 @@ CDTextAsmOutput PROC USES EBX EDI ESI hWin:DWORD, lpData:DWORD, dwDataLength:DWO
     .ELSEIF eax == COMPRESS_ALGORITHM_LZMS
         Invoke lstrcat, Addr szMasmLabel, Addr szHEADER_LZMS
     .ELSE
-        Invoke lstrcat, Addr szMasmLabel, CTEXT("MASM")
+        Invoke lstrcat, Addr szMasmLabel, Addr szCDTextMASM
     .ENDIF    
-    Invoke lstrcat, Addr szMasmLabel, CTEXT("Text")
+    Invoke lstrcat, Addr szMasmLabel, Addr szCDTextTEXT
     Invoke lstrlen, Addr szMasmLabel
     mov LenMasmLabel, eax
     

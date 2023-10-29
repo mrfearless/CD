@@ -210,6 +210,7 @@ szCDMemoryDisplayDC             DB 'DISPLAY',0
 ClassName                       DB 'DLGCLASS',0
 AppName                         DB 'Compress-Decompress Utility',0
 AboutMsg                        DB 'github.com/mrfearless',13,10,'Copyright © fearless 2023',0
+szTooltipsClass                 DB 'Tooltips_class32',0
 
 bAsmOutput                      DD TRUE
 bAsmDataSeg                     DD TRUE
