@@ -16,6 +16,10 @@ The files compressed by **CD** using those compression algorithms also store a s
 
 **CD** also allows an optional output of compressed data bytes as a masm `.asm` file with '`db`' data defines, similar to the [masm32 sdk](https://masm32.com/) utility **bin2dbex**.
 
+
+
+**Note: the minimum version of windows to use for the Microsoft Compression API and thus to use the CD - Compress-Decompress Utility is [Windows 8](https://learn.microsoft.com/en-us/windows/win32/api/compressapi/nf-compressapi-compress#requirements)**
+
 # Download
 
 The latest x86 and x64 release can be downloaded via the [releases](https://github.com/mrfearless/cd/releases) section of this Github repository.
